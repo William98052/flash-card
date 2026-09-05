@@ -72,6 +72,8 @@ export interface AppSettings {
   continuousFlipListening: boolean
   /** Recognize locally with the bundled model instead of Chrome's cloud service. */
   useOfflineSpeech?: boolean
+  /** voiceURI of the chosen reading voice; unset means the best available. */
+  ttsVoiceUri?: string
   backupReminderDismissedAt: string | null
   appVersion: number
   schemaVersion: number

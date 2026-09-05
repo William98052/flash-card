@@ -3,20 +3,41 @@
  * on macOS (Tingting, Shelley and others), so this needs no network and no
  * bundled audio.
  */
-export function pickChineseVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
-  const chinese = voices.filter((item) => /^(zh|cmn)/i.test(item.lang))
-  if (!chinese.length) return undefined
-  const rank = (item: SpeechSynthesisVoice) =>
-    (/^(zh-CN|cmn-Hans)/i.test(item.lang) ? 0 : 1) + (item.localService ? 0 : 2)
-  return [...chinese].sort((a, b) => rank(a) - rank(b))[0]
+/**
+ * macOS ships a set of character voices - Eddy, Flo, Grandma, Grandpa, Reed,
+ * Rocko, Sandy, Shelley - in every language, and they sound like novelties
+ * rather than speech. The natural Mandarin voice is Tingting (Meijia for
+ * Taiwan), so those are preferred and the character voices are used only when
+ * nothing else exists.
+ */
+const NOVELTY_VOICES = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Superstar|Jester|Bells|Boing|Bubbles|Trinoids|Whisper|Wobble|Zarvox|Albert|Bahh|Cellos|Organ|Good News|Bad News)\b/i
+const NATURAL_VOICES = /^(Tingting|Ting-Ting|Meijia|Mei-Jia|Sinji|Li-?mu|Yu-?shu|Han|Lili|Xiaoxiao|Yunyang)\b/i
+
+function voiceRank(item: SpeechSynthesisVoice): number {
+  const novelty = NOVELTY_VOICES.test(item.name) ? 100 : 0
+  const natural = NATURAL_VOICES.test(item.name) ? 0 : 10
+  const mainland = /^(zh-CN|cmn-Hans|zh-Hans)/i.test(item.lang) ? 0 : 1
+  const remote = item.localService ? 0 : 4
+  return novelty + natural + mainland + remote
+}
+
+/** Every Chinese voice, best first — for a picker the learner can listen through. */
+export function listChineseVoices(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
+  return voices.filter((item) => /^(zh|cmn)/i.test(item.lang)).sort((a, b) => voiceRank(a) - voiceRank(b))
+}
+
+export function pickChineseVoice(voices: SpeechSynthesisVoice[], preferredUri?: string): SpeechSynthesisVoice | undefined {
+  const chinese = listChineseVoices(voices)
+  return chinese.find((item) => item.voiceURI === preferredUri) ?? chinese[0]
 }
 
 export function speakCharacter(
   text: string,
   synth: SpeechSynthesis,
   createUtterance: (text: string) => SpeechSynthesisUtterance,
+  preferredUri?: string,
 ): boolean {
-  const chosen = pickChineseVoice(synth.getVoices())
+  const chosen = pickChineseVoice(synth.getVoices(), preferredUri)
   if (!chosen) return false
   synth.cancel() // never let two readings overlap
   const utterance = createUtterance(text)
@@ -46,7 +67,8 @@ export async function speakWhenReady(
   text: string,
   synth: SpeechSynthesis,
   createUtterance: (text: string) => SpeechSynthesisUtterance,
+  preferredUri?: string,
 ): Promise<boolean> {
   await loadVoices(synth)
-  return speakCharacter(text, synth, createUtterance)
+  return speakCharacter(text, synth, createUtterance, preferredUri)
 }

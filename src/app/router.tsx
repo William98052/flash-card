@@ -8,7 +8,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage'
 import { useAppData } from './AppProviders'
 import { describeEnvironment, describeSpeechError, getSharedSpeechAdapter, requestMicrophoneAccess, shouldRestartContinuous } from '@/speech/speech-adapter'
 import { assessPronunciation, buildHomophoneIndex, isFlipCommand } from '@/speech/normalize'
-import { speakWhenReady } from '@/speech/speak'
+import { listChineseVoices, loadVoices, speakWhenReady } from '@/speech/speak'
 import { recordClip } from '@/speech/recorder'
 import type { VoskTranscriber } from '@/speech/vosk-engine'
 import { assessTone, expectedToneFromPinyin, extractContour } from '@/speech/tone'
@@ -67,7 +67,7 @@ function StudyRoute() {
   if (!session) return <Navigate to="/" replace />
   if (session.status !== 'active' || !card) return <Navigate to={`/summary/${session.id}`} replace />
   return <StudyPage card={card} session={session} speechAvailable={adapter.capability === 'available'} transcript={speech.transcript} assessmentReason={speech.reason} speechStatus={speech.status} voiceFlipToken={speech.flipToken} onSpeak={async () => {
-    const spoken = await speakWhenReady(card.character, window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text))
+    const spoken = await speakWhenReady(card.character, window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), app.settings.ttsVoiceUri)
     if (!spoken) setTone({ status: 'idle', result: { status: 'unclear', message: 'This browser has no Chinese voice installed, so playback is unavailable.' } })
   }}
   onCheckTone={async () => {
@@ -84,7 +84,7 @@ function StudyRoute() {
   toneStatus={tone.status}
   toneResult={tone.result}
   onListen={async () => {
-    if (app.settings.useOfflineSpeech ?? true) {
+    if (app.settings.useOfflineSpeech ?? false) {
       // A fixed recording window, so a short syllable is never cut off, and the
       // same clip answers both questions: which syllable, and which tone.
       setSpeech((prior) => ({ ...prior, status: 'listening', transcript: '', reason: 'Recording… say it now.' }))
@@ -127,7 +127,17 @@ function LibraryRoute() {
 
 function SettingsRoute() {
   const app = useAppData()
-  return <SettingsPage continuousListening={app.settings.continuousFlipListening} offlineSpeech={app.settings.useOfflineSpeech ?? true} onOfflineSpeechChange={(value) => void app.updateSettings({ useOfflineSpeech: value })} speechAvailable={'webkitSpeechRecognition' in window || 'SpeechRecognition' in window} onListeningChange={(value) => void app.updateSettings({ continuousFlipListening: value })} onResetDefaults={() => void app.updateSettings({ continuousFlipListening: false, backupReminderDismissedAt: null })} onEraseAll={() => void app.eraseAll()} />
+  const [voices, setVoices] = useState<{ name: string; uri: string }[]>([])
+  useEffect(() => {
+    void loadVoices(window.speechSynthesis).then((all) =>
+      setVoices(listChineseVoices(all).map((item) => ({ name: `${item.name} (${item.lang})`, uri: item.voiceURI }))))
+  }, [])
+  return <SettingsPage
+    voices={voices}
+    voiceUri={app.settings.ttsVoiceUri ?? voices[0]?.uri}
+    onVoiceChange={(uri) => void app.updateSettings({ ttsVoiceUri: uri })}
+    onPreviewVoice={() => void speakWhenReady('你好，这是朗读示例。', window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), app.settings.ttsVoiceUri ?? voices[0]?.uri)}
+    continuousListening={app.settings.continuousFlipListening} offlineSpeech={app.settings.useOfflineSpeech ?? false} onOfflineSpeechChange={(value) => void app.updateSettings({ useOfflineSpeech: value })} speechAvailable={'webkitSpeechRecognition' in window || 'SpeechRecognition' in window} onListeningChange={(value) => void app.updateSettings({ continuousFlipListening: value })} onResetDefaults={() => void app.updateSettings({ continuousFlipListening: false, backupReminderDismissedAt: null })} onEraseAll={() => void app.eraseAll()} />
 }
 
 export function AppRoutes() {

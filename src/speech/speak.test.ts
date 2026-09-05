@@ -1,5 +1,5 @@
-import { expect, it, vi } from 'vitest'
-import { pickChineseVoice, speakCharacter, speakWhenReady } from './speak'
+import { describe, expect, it, vi } from 'vitest'
+import { listChineseVoices, pickChineseVoice, speakCharacter, speakWhenReady } from './speak'
 
 const voice = (name: string, lang: string, localService = true) => ({ name, lang, localService }) as SpeechSynthesisVoice
 
@@ -48,4 +48,38 @@ it('waits for voices, which Chrome loads asynchronously and reports empty at fir
   ;(listener as unknown as (() => void) | null)?.()
   expect(await pending).toBe(true)
   expect(speak).toHaveBeenCalled()
+})
+
+describe('voice quality ranking', () => {
+  const all = [
+    voice('Eddy (Chinese (China mainland))', 'zh-CN'),
+    voice('Flo (Chinese (China mainland))', 'zh-CN'),
+    voice('Grandma (Chinese (China mainland))', 'zh-CN'),
+    voice('Meijia', 'zh-TW'),
+    voice('Tingting', 'zh-CN'),
+    voice('Daniel', 'en-GB'),
+  ]
+
+  it('picks the natural voice over the novelty character voices', () => {
+    // macOS ships Eddy, Flo, Grandma, Grandpa, Reed, Rocko, Sandy and Shelley
+    // as character voices in every language. Tingting is the real zh-CN voice.
+    expect(pickChineseVoice(all)?.name).toBe('Tingting')
+  })
+
+  it('falls back to a novelty voice only when nothing better exists', () => {
+    const only = [voice('Grandpa (Chinese (China mainland))', 'zh-CN'), voice('Daniel', 'en-GB')]
+    expect(pickChineseVoice(only)?.name).toMatch(/Grandpa/)
+  })
+
+  it('prefers mainland over Taiwan when both are natural', () => {
+    expect(pickChineseVoice([voice('Meijia', 'zh-TW'), voice('Tingting', 'zh-CN')])?.name).toBe('Tingting')
+    expect(pickChineseVoice([voice('Meijia', 'zh-TW')])?.name).toBe('Meijia')
+  })
+
+  it('lists the Chinese voices best first, so a picker can show them in order', () => {
+    expect(listChineseVoices(all).map((v) => v.name)).toEqual([
+      'Tingting', 'Meijia',
+      'Eddy (Chinese (China mainland))', 'Flo (Chinese (China mainland))', 'Grandma (Chinese (China mainland))',
+    ])
+  })
 })

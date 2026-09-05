@@ -86,3 +86,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 }
 
 .speech-tip { margin: .5rem 0 0; font-size: .82rem; opacity: .75; text-align: center; }
+
+.field { display: flex; flex-direction: column; gap: .3rem; margin: .6rem 0; }
+.field select { padding: .45rem; border-radius: .4rem; }

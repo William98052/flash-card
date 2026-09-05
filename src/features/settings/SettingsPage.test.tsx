@@ -16,3 +16,17 @@ it('separates default settings from erasing study data', async () => {
   await user.click(screen.getByRole('button', { name: /Yes, delete everything/ }))
   expect(erase).toHaveBeenCalledOnce()
 })
+
+it('lets me choose and preview the reading voice', async () => {
+  const user = userEvent.setup()
+  const onVoiceChange = vi.fn()
+  const onPreviewVoice = vi.fn()
+  render(<SettingsPage continuousListening={false} speechAvailable offlineSpeech={false}
+    voices={[{ name: 'Tingting', uri: 'tingting' }, { name: 'Eddy', uri: 'eddy' }]}
+    voiceUri="tingting" onVoiceChange={onVoiceChange} onPreviewVoice={onPreviewVoice}
+    onOfflineSpeechChange={() => {}} onListeningChange={() => {}} onResetDefaults={() => {}} onEraseAll={() => {}} />)
+  await user.selectOptions(screen.getByRole('combobox', { name: /reading voice/i }), 'eddy')
+  expect(onVoiceChange).toHaveBeenCalledWith('eddy')
+  await user.click(screen.getByRole('button', { name: /preview/i }))
+  expect(onPreviewVoice).toHaveBeenCalled()
+})
