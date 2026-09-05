@@ -58,7 +58,9 @@ export function StudyPage({ card, session, speechAvailable, transcript, assessme
         <div className="flash-card is-flipped" aria-label="Card back">
           <span className="card-back">
             <span className="card-character-small">{card.character}</span>
-            <strong className="pinyin">{card.readings.map((reading) => reading.pinyin).join(' · ')}</strong>
+            <button type="button" className="pinyin pinyin-button main-pinyin-button" aria-label={`Read ${card.character}`} onClick={onSpeak}>
+              {card.readings.map((reading) => reading.pinyin).join(' · ')}
+            </button>
             <span className="meaning">{card.englishMeaning}</span>
             <span className="content-list">
               {(card.contentType === 'compounds' ? card.compounds : card.examples).map((item) => (

@@ -39,4 +39,36 @@ describe('initializeDatabase', () => {
     expect((await reopened.cards.get('seed-0001'))?.englishMeaning).toBe('my edit')
     expect((await reopened.reviews.get('seed-0001'))?.reviewCount).toBe(7)
   })
+
+  it('applies newer built-in content without overwriting user-edited fields or statistics', async () => {
+    const originalSeed = structuredClone(seed) as CharacterCard[]
+    const originalHeavy = originalSeed.find(({ character }) => character === '重')!
+    originalHeavy.seedVersion = 1
+    originalHeavy.readings = [{ pinyin: 'zhòng', meaning: 'to repeat', acceptedForms: ['重', 'zhong'] }]
+    originalHeavy.englishMeaning = 'my preferred definition'
+    originalHeavy.compounds = [{ text: '重样', pinyin: 'zhòng yàng', english: 'same' }]
+
+    const db = createDb()
+    await initializeDatabase(db, originalSeed)
+    await db.cards.update(originalHeavy.id, { userEditedFields: ['englishMeaning'] })
+    await db.reviews.update(originalHeavy.id, { reviewCount: 7 })
+
+    const upgradedSeed = structuredClone(seed) as CharacterCard[]
+    upgradedSeed.find(({ character }) => character === '重')!.seedVersion = 2
+    await initializeDatabase(db, upgradedSeed)
+
+    const upgradedHeavy = (await db.cards.get(originalHeavy.id))!
+    expect(upgradedHeavy.readings.map(({ pinyin }) => pinyin)).toEqual(['zhòng', 'chóng'])
+    expect(upgradedHeavy.englishMeaning).toBe('my preferred definition')
+    expect(upgradedHeavy.compounds.map(({ text, pinyin }) => [text, pinyin])).toEqual([
+      ['重要', 'zhòng yào'],
+      ['重量', 'zhòng liàng'],
+      ['严重', 'yán zhòng'],
+      ['重新', 'chóng xīn'],
+      ['重复', 'chóng fù'],
+    ])
+    expect(upgradedHeavy.seedVersion).toBe(2)
+    expect((await db.reviews.get(originalHeavy.id))?.reviewCount).toBe(7)
+    expect((await db.metadata.get('seedVersion'))?.value).toBe(2)
+  })
 })

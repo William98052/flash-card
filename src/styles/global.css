@@ -54,6 +54,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .study-meta { display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; align-items: center; color: var(--muted); }
 .study-meta a { color: var(--red); }.study-meta span { text-align: right; }
 .flash-card { width: min(100%, 570px); min-height: min(60vh, 540px); padding: 2rem; border: 1px solid var(--line); border-radius: 32px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow); cursor: pointer; }
+.flash-card.is-flipped { cursor: default; }
 .character-face { font: 700 clamp(8rem, 32vw, 15rem) 'Songti SC', 'STSong', serif; color: var(--red-dark); }
 .card-back, .content-list, .content-item { display: grid; }
 .card-back { gap: .55rem; text-align: left; }
@@ -107,3 +108,4 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   text-underline-offset: .2em;
 }
 .pinyin-button:hover, .pinyin-button:focus-visible { background: rgba(140, 47, 35, .1); text-decoration-style: solid; }
+.main-pinyin-button { width: fit-content; font-weight: 700; }

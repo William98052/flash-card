@@ -51,6 +51,18 @@ it('offers playback of the expected pronunciation and a tone check', async () =>
   expect(onCheckTone).toHaveBeenCalled()
 })
 
+it('reads the character aloud when its main pinyin is clicked', async () => {
+  const user = userEvent.setup()
+  const onSpeak = vi.fn()
+  const card = seed[0] as CharacterCard
+  render(<StudyPage card={card} session={session} speechAvailable onSpeak={onSpeak} onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
+
+  await user.click(screen.getByRole('button', { name: /Flip card/ }))
+  await user.click(screen.getByRole('button', { name: `Read ${card.character}` }))
+
+  expect(onSpeak).toHaveBeenCalledOnce()
+})
+
 it('shows the tone verdict, and says when it is recording', () => {
   const { rerender } = render(<StudyPage card={seed[0] as CharacterCard} session={session} speechAvailable toneStatus="recording" onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
   expect(screen.getByRole('button', { name: /Recording/ })).toBeVisible()
