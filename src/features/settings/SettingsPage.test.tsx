@@ -6,7 +6,7 @@ it('separates default settings from erasing study data', async () => {
   const user = userEvent.setup()
   const reset = vi.fn()
   const erase = vi.fn()
-  render(<SettingsPage continuousListening={false} speechAvailable={false} onListeningChange={() => {}} onResetDefaults={reset} onEraseAll={erase} />)
+  render(<SettingsPage continuousListening={false} speechAvailable={false} offlineSpeech onOfflineSpeechChange={() => {}} onListeningChange={() => {}} onResetDefaults={reset} onEraseAll={erase} />)
   expect(screen.getByText(/Audio may be sent to your browser vendor/)).toBeVisible()
   await user.click(screen.getByRole('button', { name: /Restore default settings/ }))
   expect(reset).toHaveBeenCalledOnce()

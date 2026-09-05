@@ -70,6 +70,8 @@ export interface SessionSummary {
 export interface AppSettings {
   id: 'settings'
   continuousFlipListening: boolean
+  /** Recognize locally with the bundled model instead of Chrome's cloud service. */
+  useOfflineSpeech?: boolean
   backupReminderDismissedAt: string | null
   appVersion: number
   schemaVersion: number

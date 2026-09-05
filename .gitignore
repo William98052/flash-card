@@ -6,3 +6,6 @@ test-results/
 playwright-report/
 tsconfig.tsbuildinfo
 .DS_Store
+
+# Vosk speech model (downloaded, see npm run fetch:model)
+public/models/

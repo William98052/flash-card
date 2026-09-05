@@ -30,7 +30,14 @@ export default defineConfig({
   plugins: [react(), speechLogRelay(), VitePWA({
     registerType: 'autoUpdate',
     includeAssets: ['icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
-    workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,json}'] },
+    workbox: {
+      navigateFallback: '/index.html',
+      globPatterns: ['**/*.{js,css,html,svg,json}'],
+      // The speech model (~42 MB) and the lazily loaded recognizer runtime are
+      // fetched on demand, never precached on install.
+      globIgnores: ['**/models/**', '**/vosk*'],
+      maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+    },
     manifest: {
       name: 'Hanzi Flash · AP Chinese Flash Cards',
       short_name: 'Hanzi Flash',

@@ -10,6 +10,7 @@ import { describeEnvironment, describeSpeechError, getSharedSpeechAdapter, reque
 import { assessPronunciation, buildHomophoneIndex, isFlipCommand } from '@/speech/normalize'
 import { speakWhenReady } from '@/speech/speak'
 import { recordClip } from '@/speech/recorder'
+import type { VoskTranscriber } from '@/speech/vosk-engine'
 import { assessTone, expectedToneFromPinyin, extractContour } from '@/speech/tone'
 
 function HomeRoute() {
@@ -23,6 +24,7 @@ function StudyRoute() {
   const [adapter] = useState(() => getSharedSpeechAdapter(window))
   const [speech, setSpeech] = useState({ transcript: '', reason: '', status: 'idle', flipToken: 0 })
   const microphoneReady = useRef(false)
+  const offlineEngine = useRef<Promise<VoskTranscriber> | null>(null)
   const homophones = useMemo(() => buildHomophoneIndex(app.cards), [app.cards])
   const [tone, setTone] = useState<{ status: 'idle' | 'recording' | 'analyzing'; result?: { status: 'match' | 'mismatch' | 'unclear'; message: string } }>({ status: 'idle' })
   const session = app.sessions.find((item) => item.id === sessionId)
@@ -82,6 +84,26 @@ function StudyRoute() {
   toneStatus={tone.status}
   toneResult={tone.result}
   onListen={async () => {
+    if (app.settings.useOfflineSpeech ?? true) {
+      // A fixed recording window, so a short syllable is never cut off, and the
+      // same clip answers both questions: which syllable, and which tone.
+      setSpeech((prior) => ({ ...prior, status: 'listening', transcript: '', reason: 'Recording… say it now.' }))
+      try {
+        const clip = await recordClip(window, 2500)
+        setSpeech((prior) => ({ ...prior, status: 'idle', reason: 'Recognizing…' }))
+        offlineEngine.current ??= import('@/speech/vosk-engine').then((module) => module.loadVoskTranscriber())
+        const engine = await offlineEngine.current
+        const text = await engine.transcribe(clip.samples, clip.sampleRate)
+        const spoken = assessPronunciation({ transcript: text, confidence: 1 }, card, { index: homophones })
+        const settledHere = spoken.status === 'correct'
+        setSpeech((prior) => ({ ...prior, transcript: text, reason: settledHere ? `${spoken.reason} Marked correct.` : spoken.reason }))
+        setTone({ status: 'idle', result: assessTone(extractContour(clip.samples, clip.sampleRate), expectedToneFromPinyin(card.readings[0]?.pinyin ?? '')) })
+        if (settledHere) void app.setDecision(session.id, 'correct')
+      } catch (error) {
+        setSpeech((prior) => ({ ...prior, status: 'idle', reason: `Offline recognition failed: ${(error as Error)?.message ?? 'unknown error'}. You can switch it off in Settings.` }))
+      }
+      return
+    }
     if (!microphoneReady.current) {
       const check = await requestMicrophoneAccess(navigator)
       if (check.state !== 'granted') { setSpeech((prior) => ({ ...prior, status: 'idle', reason: `${check.message}${check.code ? ` (diagnostic code: ${check.code})` : ''}` })); return }
@@ -105,7 +127,7 @@ function LibraryRoute() {
 
 function SettingsRoute() {
   const app = useAppData()
-  return <SettingsPage continuousListening={app.settings.continuousFlipListening} speechAvailable={'webkitSpeechRecognition' in window || 'SpeechRecognition' in window} onListeningChange={(value) => void app.updateSettings({ continuousFlipListening: value })} onResetDefaults={() => void app.updateSettings({ continuousFlipListening: false, backupReminderDismissedAt: null })} onEraseAll={() => void app.eraseAll()} />
+  return <SettingsPage continuousListening={app.settings.continuousFlipListening} offlineSpeech={app.settings.useOfflineSpeech ?? true} onOfflineSpeechChange={(value) => void app.updateSettings({ useOfflineSpeech: value })} speechAvailable={'webkitSpeechRecognition' in window || 'SpeechRecognition' in window} onListeningChange={(value) => void app.updateSettings({ continuousFlipListening: value })} onResetDefaults={() => void app.updateSettings({ continuousFlipListening: false, backupReminderDismissedAt: null })} onEraseAll={() => void app.eraseAll()} />
 }
 
 export function AppRoutes() {
