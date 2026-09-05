@@ -61,6 +61,7 @@ export function StudyPage({ card, session, speechAvailable, transcript, assessme
       </button>
       <p className="flip-hint">{flipped ? 'Check the answer, then judge yourself' : 'Click the card, press Space, or say “翻”'}</p>
       {!speechAvailable ? <p className="notice">Speech input is unavailable in this browser; you can still study manually.</p> : <button className="secondary-button" onClick={onListen}>{speechStatus === 'listening' ? 'Listening…' : 'Speak and check'}</button>}
+      {speechAvailable && <p className="speech-tip">Tip: say it twice, e.g. “bì bì”. Chrome often returns nothing for a single short syllable.</p>}
       <div className="practice-row">
         <button className="secondary-button" onClick={onSpeak}>🔊 Hear it</button>
         <button className="secondary-button" onClick={onCheckTone} disabled={toneStatus !== 'idle'}>

@@ -81,3 +81,8 @@ it('still lets me overrule the automatic judgment', async () => {
   expect(screen.getByRole('button', { name: /Incorrect/ })).toHaveAttribute('aria-pressed', 'true')
   expect(screen.getByRole('button', { name: /✓ Correct/ })).toHaveAttribute('aria-pressed', 'false')
 })
+
+it('tells me to repeat the syllable, which is what Chrome needs to return a result', () => {
+  render(<StudyPage card={seed[0] as CharacterCard} session={session} speechAvailable onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
+  expect(screen.getByText(/say it twice/i)).toBeVisible()
+})

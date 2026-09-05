@@ -97,3 +97,23 @@ describe('single letters that Chrome writes instead of a syllable', () => {
     expect(assessPronunciation({ transcript: 'bee', confidence: .9 }, bi).status).toBe('incorrect')
   })
 })
+
+describe('repeated syllables', () => {
+  const bi = { character: '闭', readings: [{ pinyin: 'bì' }] } as unknown as CharacterCard
+
+  it('accepts a reading that was said twice', () => {
+    // Chrome often returns nothing for one short syllable, so learners repeat
+    // themselves and get back "b b" or "bi bi".
+    expect(assessPronunciation({ transcript: 'b b', confidence: .8 }, bi).status).toBe('correct')
+    expect(assessPronunciation({ transcript: 'bi bi', confidence: .8 }, bi).status).toBe('correct')
+    expect(assessPronunciation({ transcript: '闭 闭', confidence: .8 }, bi).status).toBe('correct')
+  })
+
+  it('accepts a self-correction, where only the last attempt was right', () => {
+    expect(assessPronunciation({ transcript: 'hao bi', confidence: .8 }, bi).status).toBe('correct')
+  })
+
+  it('does not match when no part of it is the reading', () => {
+    expect(assessPronunciation({ transcript: 'hao hao', confidence: .8 }, bi).status).toBe('incorrect')
+  })
+})

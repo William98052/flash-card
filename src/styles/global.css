@@ -84,3 +84,5 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .tone-result.mismatch { background: #3b1a16; color: #f0a79d; }
   .tone-result.unclear { background: #2e2a24; color: #cfc7b8; }
 }
+
+.speech-tip { margin: .5rem 0 0; font-size: .82rem; opacity: .75; text-align: center; }

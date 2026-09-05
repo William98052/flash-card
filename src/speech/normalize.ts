@@ -72,7 +72,11 @@ export function assessPronunciation(
   options: { index?: HomophoneIndex; threshold?: number } = {},
 ): Assessment {
   const { index, threshold = .55 } = options
-  const candidates = [result.transcript, ...(result.alternatives ?? [])].filter(Boolean)
+  // Chrome frequently returns nothing for a single short syllable, so learners
+  // repeat themselves and it comes back as "b b" or "bi bi". Split on spaces so
+  // each attempt is judged on its own, and one right attempt counts.
+  const spoken = [result.transcript, ...(result.alternatives ?? [])].filter(Boolean)
+  const candidates = [...new Set(spoken.flatMap((value) => [value, ...value.split(/[\s,.。、]+/)]))].filter(Boolean)
   if (!candidates.some((value) => normalizeRecognition(value))) {
     return { status: 'manual', reason: 'Nothing was recognized. Please judge manually.', transcript: result.transcript }
   }
