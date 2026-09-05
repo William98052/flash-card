@@ -73,3 +73,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .card-editor { display: grid; width: min(100%, 620px); max-height: 92vh; overflow: auto; gap: .9rem; }.card-editor label { display: grid; gap: .35rem; font-weight: 700; }.card-editor input, .card-editor textarea { padding: .7rem; border: 1px solid var(--line); border-radius: 10px; background: white; }.form-error { color: #8c2f23; font-weight: 700; }
 @media (max-width: 640px) { .site-header { align-items: flex-start; flex-direction: column; }.site-header nav { width: 100%; justify-content: space-between; }.hero-panel { align-items: flex-start; flex-direction: column; }.study-meta { grid-template-columns: 1fr auto; }.study-meta span { display: none; }.flash-card { min-height: 440px; }.content-item { grid-template-columns: 1fr; gap: .15rem; }.manage-card { grid-template-columns: auto auto 1fr; }.manage-card .status, .manage-card .button-row { grid-column: 3; justify-self: start; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+.practice-row { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; }
+.tone-result { margin-top: .75rem; padding: .7rem .9rem; border-radius: .6rem; font-weight: 600; text-align: center; }
+.tone-result.match { background: #e7f4e9; color: #1d6a2c; }
+.tone-result.mismatch { background: #fdecea; color: #97231a; }
+.tone-result.unclear { background: #f3efe6; color: #5a5346; }
+@media (prefers-color-scheme: dark) {
+  .tone-result.match { background: #16351c; color: #9fd9ab; }
+  .tone-result.mismatch { background: #3b1a16; color: #f0a79d; }
+  .tone-result.unclear { background: #2e2a24; color: #cfc7b8; }
+}

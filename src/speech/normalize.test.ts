@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assessPronunciation, isFlipCommand, normalizeRecognition } from './normalize'
+import { assessPronunciation, buildHomophoneIndex, isFlipCommand, normalizeRecognition } from './normalize'
 import type { CharacterCard } from '@/domain/types'
 
 const card = {
@@ -21,12 +21,51 @@ describe('speech normalization', () => {
 
   it('requires manual judgment for empty or low-confidence results', () => {
     expect(assessPronunciation({ transcript: '', confidence: .9 }, card).status).toBe('manual')
-    expect(assessPronunciation({ transcript: 'xing', confidence: .2 }, card).status).toBe('manual')
+    // A low score on something that does NOT match still needs a human call.
+    expect(assessPronunciation({ transcript: 'zhuo', confidence: .2 }, card).status).toBe('manual')
     expect(assessPronunciation({ transcript: '错', confidence: .9 }, card).status).toBe('incorrect')
   })
 
   it('recognizes only the isolated flip command', () => {
     expect(isFlipCommand('翻')).toBe(true)
     expect(isFlipCommand('翻到下一张')).toBe(false)
+  })
+})
+
+describe('constrained matching against the card\'s known readings', () => {
+  const index = buildHomophoneIndex([
+    { character: '行', readings: [{ pinyin: 'xíng' }, { pinyin: 'háng' }] },
+    { character: '型', readings: [{ pinyin: 'xíng' }] },
+    { character: '形', readings: [{ pinyin: 'xíng' }] },
+    { character: '错', readings: [{ pinyin: 'cuò' }] },
+  ] as CharacterCard[])
+
+  it('accepts a homophone the recognizer returned instead of the card character', () => {
+    // Saying "xíng" correctly often comes back as 型 or 形 - the pronunciation was right.
+    expect(assessPronunciation({ transcript: '型', confidence: .9 }, card, { index }).status).toBe('correct')
+    expect(assessPronunciation({ transcript: '形', confidence: .9 }, card, { index }).status).toBe('correct')
+  })
+
+  it('accepts a match found in any alternative, not just the top one', () => {
+    const result = assessPronunciation({ transcript: '刑事', confidence: .9, alternatives: ['刑事', 'xíng'] }, card, { index })
+    expect(result.status).toBe('correct')
+  })
+
+  it('trusts a matching reading even when the confidence score is low', () => {
+    // Confidence is unreliable: ambient noise scored 0.89 while real speech scored lower.
+    expect(assessPronunciation({ transcript: 'xing', confidence: .2 }, card, { index }).status).toBe('correct')
+  })
+
+  it('still asks for a manual judgment when nothing matches and confidence is low', () => {
+    expect(assessPronunciation({ transcript: '错', confidence: .2 }, card, { index }).status).toBe('manual')
+  })
+
+  it('rejects a confidently recognized non-homophone', () => {
+    expect(assessPronunciation({ transcript: '错', confidence: .9 }, card, { index }).status).toBe('incorrect')
+  })
+
+  it('tolerates a one-letter slip in a long pinyin transcript but not a short one', () => {
+    expect(assessPronunciation({ transcript: 'xin', confidence: .9 }, card, { index }).status).toBe('incorrect')
+    expect(assessPronunciation({ transcript: 'hang', confidence: .9 }, card, { index }).status).toBe('correct')
   })
 })

@@ -60,7 +60,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   useEffect(() => {
     mounted.current = true
     initializeDatabase(db, seed as CharacterCard[]).then(refresh).catch((error) => {
-      if (mounted.current) setState((prior) => ({ ...prior, error: error instanceof Error ? error.message : '本地数据库无法打开' }))
+      if (mounted.current) setState((prior) => ({ ...prior, error: error instanceof Error ? error.message : 'Could not open the local database' }))
     })
     return () => { mounted.current = false }
   }, [db, refresh])
@@ -85,7 +85,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     },
     async setDecision(sessionId, decision) { await db.sessions.update(sessionId, { pendingDecision: decision }); await refresh() },
     async advance(sessionId) {
-      const session = await db.sessions.get(sessionId); if (!session?.pendingDecision) throw new Error('请先判断正确或错误')
+      const session = await db.sessions.get(sessionId); if (!session?.pendingDecision) throw new Error('Judge the card correct or incorrect first')
       const cardId = session.cardIds[session.currentIndex]
       const review = await db.reviews.get(cardId)
       const nextIndex = session.currentIndex + 1; const completed = nextIndex >= session.cardIds.length
@@ -105,12 +105,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
     async deleteCard(cardId) { await repository.deleteCard(cardId); await refresh() },
     async saveCard(card) {
       const conflict = await db.cards.where('character').equals(card.character).first()
-      if (conflict && conflict.id !== card.id) throw new Error(`“${card.character}”已经存在`)
+      if (conflict && conflict.id !== card.id) throw new Error(`“${card.character}” already exists`)
       await db.cards.put(card); await refresh()
     },
     async restoreCard(cardId) {
       const original = (seed as CharacterCard[]).find((card) => card.id === cardId)
-      if (!original) throw new Error('只有内置字卡可以恢复')
+      if (!original) throw new Error('Only built-in cards can be restored')
       await db.cards.put(structuredClone(original)); await refresh()
     },
     async exportJson() { return JSON.stringify(exportBackup(await snapshotDatabase(db)), null, 2) },
@@ -118,9 +118,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
     async importJson(content) {
       const preview = previewBackup(content)
       if (!preview.valid) throw new Error(preview.error)
-      const accepted = window.confirm(`将恢复 ${preview.counts.cards} 张字卡、${preview.counts.memberships} 个字库关系和 ${preview.counts.reviews} 条统计。现有数据将被覆盖。继续吗？`)
-      if (!accepted) return { message: '已取消导入，数据未更改。' }
-      await commitBackup(db, preview.backup); await refresh(); return { message: 'JSON 完整备份已恢复。' }
+      const accepted = window.confirm(`This restores ${preview.counts.cards} cards, ${preview.counts.memberships} library links, and ${preview.counts.reviews} statistics rows. Your current data will be overwritten. Continue?`)
+      if (!accepted) return { message: 'Import cancelled; nothing changed.' }
+      await commitBackup(db, preview.backup); await refresh(); return { message: 'Full JSON backup restored.' }
     },
     async importCsv(content) {
       const result = parseCardsCsv(content)
@@ -135,7 +135,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             await db.reviews.add({ characterId: incoming.id, isUnreviewed: 1, reviewCount: 0, correctCount: 0, incorrectCount: 0, lastReviewedAt: null })
           }
         }
-      }); await refresh(); return { message: `已导入 ${result.cards.length} 张字卡内容。` }
+      }); await refresh(); return { message: `Imported content for ${result.cards.length} cards.` }
     },
     async resetRound() {
       const ids = await repository.libraryCardIds('all')

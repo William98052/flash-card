@@ -5,9 +5,9 @@ import { ImportExportPanel } from './ImportExportPanel'
 it('offers full JSON backup and content-only CSV actions', async () => {
   const user = userEvent.setup(); const onExportJson = vi.fn(async () => '{}'); const onExportCsv = vi.fn(() => 'character,pinyin')
   render(<ImportExportPanel onExportJson={onExportJson} onExportCsv={onExportCsv} onImportJson={() => Promise.resolve({ message: 'ok' })} onImportCsv={() => Promise.resolve({ message: 'ok' })} />)
-  await user.click(screen.getByRole('button', { name: /导出 JSON 完整备份/ }))
-  await user.click(screen.getByRole('button', { name: /导出 CSV 字卡内容/ }))
+  await user.click(screen.getByRole('button', { name: /Export full JSON backup/ }))
+  await user.click(screen.getByRole('button', { name: /Export card content as CSV/ }))
   expect(onExportJson).toHaveBeenCalledOnce()
   expect(onExportCsv).toHaveBeenCalledOnce()
-  expect(screen.getByText(/CSV 不包含学习进度/)).toBeVisible()
+  expect(screen.getByText(/CSV does not include progress/)).toBeVisible()
 })

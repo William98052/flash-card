@@ -9,16 +9,27 @@ interface Props {
   assessmentReason?: string
   speechStatus?: string
   voiceFlipToken?: number
+  toneStatus?: 'idle' | 'recording' | 'analyzing'
+  toneResult?: { status: 'match' | 'mismatch' | 'unclear'; message: string }
+  onSpeak?(): void
+  onCheckTone?(): void
   onDecision(decision: Decision): void
   onNext(): void
   onTag(libraryId: LibraryId, enabled: boolean): void
   onListen?(): void
 }
 
-export function StudyPage({ card, session, speechAvailable, transcript, assessmentReason, speechStatus, voiceFlipToken = 0, onDecision, onNext, onTag, onListen }: Props) {
+export function StudyPage({ card, session, speechAvailable, transcript, assessmentReason, speechStatus, voiceFlipToken = 0, toneStatus = 'idle', toneResult, onSpeak, onCheckTone, onDecision, onNext, onTag, onListen }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [decision, setDecision] = useState<Decision | null>(session.pendingDecision)
-  useEffect(() => { setFlipped(false); setDecision(null) }, [card.id])
+  useEffect(() => { setFlipped(false); setDecision(session.pendingDecision) }, [card.id])
+  useEffect(() => {
+    // A matching pronunciation settles the card without a click; show the answer
+    // alongside the verdict so it is never marked behind a hidden card.
+    if (!session.pendingDecision) return
+    setDecision(session.pendingDecision)
+    setFlipped(true)
+  }, [session.pendingDecision])
   useEffect(() => { if (voiceFlipToken > 0) setFlipped(true) }, [voiceFlipToken])
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -35,8 +46,8 @@ export function StudyPage({ card, session, speechAvailable, transcript, assessme
 
   return (
     <div className="study-layout">
-      <header className="study-meta"><a href="/">← 首页</a><strong>{progress} / {session.cardIds.length}</strong><span>本轮正确 {session.correctCount}</span></header>
-      <button className={`flash-card ${flipped ? 'is-flipped' : ''}`} aria-label={flipped ? '字卡背面' : '翻开字卡'} onClick={() => !flipped && setFlipped(true)}>
+      <header className="study-meta"><a href="/">← Home</a><strong>{progress} / {session.cardIds.length}</strong><span>Correct this round {session.correctCount}</span></header>
+      <button className={`flash-card ${flipped ? 'is-flipped' : ''}`} aria-label={flipped ? 'Card back' : 'Flip card'} onClick={() => !flipped && setFlipped(true)}>
         {!flipped ? <span className="character-face">{card.character}</span> : (
           <span className="card-back">
             <span className="card-character-small">{card.character}</span>
@@ -48,16 +59,23 @@ export function StudyPage({ card, session, speechAvailable, transcript, assessme
           </span>
         )}
       </button>
-      <p className="flip-hint">{flipped ? '检查答案，然后作出判断' : '点击字卡、按空格键，或说“翻”'}</p>
-      {!speechAvailable ? <p className="notice">浏览器不支持语音或麦克风不可用；你仍可完整手动学习。</p> : <button className="secondary-button" onClick={onListen}>{speechStatus === 'listening' ? '正在聆听…' : '朗读并识别'}</button>}
-      {(transcript || assessmentReason) && <div className="speech-result" aria-live="polite"><b>识别到：{transcript || '无结果'}</b><span>{assessmentReason}</span></div>}
+      <p className="flip-hint">{flipped ? 'Check the answer, then judge yourself' : 'Click the card, press Space, or say “翻”'}</p>
+      {!speechAvailable ? <p className="notice">Speech input is unavailable in this browser; you can still study manually.</p> : <button className="secondary-button" onClick={onListen}>{speechStatus === 'listening' ? 'Listening…' : 'Speak and check'}</button>}
+      <div className="practice-row">
+        <button className="secondary-button" onClick={onSpeak}>🔊 Hear it</button>
+        <button className="secondary-button" onClick={onCheckTone} disabled={toneStatus !== 'idle'}>
+          {toneStatus === 'recording' ? '● Recording…' : toneStatus === 'analyzing' ? 'Checking…' : '♪ Check my tone'}
+        </button>
+      </div>
+      {(transcript || assessmentReason) && <div className="speech-result" aria-live="polite"><b>Heard: {transcript || 'nothing'}</b><span>{assessmentReason}</span></div>}
+      {toneResult && <div className={`tone-result ${toneResult.status}`} aria-live="polite">{toneResult.message}</div>}
       {flipped && <>
-        <div className="decision-row" aria-label="本题判断">
-          <button className={decision === 'incorrect' ? 'selected wrong' : ''} onClick={() => choose('incorrect')}>✕ 错误</button>
-          <button className={decision === 'correct' ? 'selected correct' : ''} onClick={() => choose('correct')}>✓ 正确</button>
+        <div className="decision-row" aria-label="Your judgment">
+          <button aria-pressed={decision === 'incorrect'} className={decision === 'incorrect' ? 'selected wrong' : ''} onClick={() => choose('incorrect')}>✕ Incorrect</button>
+          <button aria-pressed={decision === 'correct'} className={decision === 'correct' ? 'selected correct' : ''} onClick={() => choose('correct')}>✓ Correct</button>
         </div>
-        <fieldset className="tag-row"><legend>加入字库</legend>{(['wrong', 'new-1', 'new-2', 'new-3', 'familiar'] as LibraryId[]).map((id) => <label key={id}><input type="checkbox" onChange={(event) => onTag(id, event.target.checked)} />{id === 'familiar' ? '熟词' : id === 'wrong' ? '错字' : `生词 ${id.at(-1)}`}</label>)}</fieldset>
-        <button className="next-button" disabled={!decision} onClick={onNext}>下一张 →</button>
+        <fieldset className="tag-row"><legend>Add to a library</legend>{(['wrong', 'new-1', 'new-2', 'new-3', 'familiar'] as LibraryId[]).map((id) => <label key={id}><input type="checkbox" onChange={(event) => onTag(id, event.target.checked)} />{id === 'familiar' ? 'Familiar' : id === 'wrong' ? 'Missed' : `New ${id.at(-1)}`}</label>)}</fieldset>
+        <button className="next-button" disabled={!decision} onClick={onNext}>Next →</button>
       </>}
     </div>
   )
