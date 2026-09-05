@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { listChineseVoices, pickChineseVoice, speakCharacter, speakWhenReady } from './speak'
 
-const voice = (name: string, lang: string, localService = true) => ({ name, lang, localService }) as SpeechSynthesisVoice
+const voice = (name: string, lang: string, localService = true) => ({ name, lang, localService, voiceURI: name }) as SpeechSynthesisVoice
 
 it('prefers an offline mainland Chinese voice', () => {
   const chosen = pickChineseVoice([
@@ -81,5 +81,28 @@ describe('voice quality ranking', () => {
       'Tingting', 'Meijia',
       'Eddy (Chinese (China mainland))', 'Flo (Chinese (China mainland))', 'Grandma (Chinese (China mainland))',
     ])
+  })
+})
+
+describe('Google network voices', () => {
+  it('prefers the Google Mandarin voice, which sounds better than the local ones', () => {
+    const all = [
+      voice('Eddy (Chinese (China mainland))', 'zh-CN'),
+      voice('Tingting', 'zh-CN'),
+      voice('Google 普通话（中国大陆）', 'zh-CN', false),
+    ]
+    expect(pickChineseVoice(all)?.name).toBe('Google 普通话（中国大陆）')
+    expect(listChineseVoices(all).map((v) => v.name)).toEqual([
+      'Google 普通话（中国大陆）', 'Tingting', 'Eddy (Chinese (China mainland))',
+    ])
+  })
+
+  it('falls back to the best local voice when Google is unavailable', () => {
+    expect(pickChineseVoice([voice('Eddy (Chinese (China mainland))', 'zh-CN'), voice('Tingting', 'zh-CN')])?.name).toBe('Tingting')
+  })
+
+  it('still honours an explicit choice', () => {
+    const all = [voice('Google 普通话（中国大陆）', 'zh-CN', false), voice('Tingting', 'zh-CN')]
+    expect(pickChineseVoice(all, 'Tingting')?.name).toBe('Tingting')
   })
 })

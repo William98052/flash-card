@@ -13,12 +13,18 @@
 const NOVELTY_VOICES = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Superstar|Jester|Bells|Boing|Bubbles|Trinoids|Whisper|Wobble|Zarvox|Albert|Bahh|Cellos|Organ|Good News|Bad News)\b/i
 const NATURAL_VOICES = /^(Tingting|Ting-Ting|Meijia|Mei-Jia|Sinji|Li-?mu|Yu-?shu|Han|Lili|Xiaoxiao|Yunyang)\b/i
 
+/**
+ * Chrome's Google Mandarin voice is the best sounding option available here, so
+ * it is preferred despite needing a network connection. The local voices remain
+ * the fallback when it is missing or offline.
+ */
+const GOOGLE_VOICE = /^Google\s/i
+
 function voiceRank(item: SpeechSynthesisVoice): number {
   const novelty = NOVELTY_VOICES.test(item.name) ? 100 : 0
-  const natural = NATURAL_VOICES.test(item.name) ? 0 : 10
+  const tier = GOOGLE_VOICE.test(item.name) ? -5 : NATURAL_VOICES.test(item.name) ? 0 : 10
   const mainland = /^(zh-CN|cmn-Hans|zh-Hans)/i.test(item.lang) ? 0 : 1
-  const remote = item.localService ? 0 : 4
-  return novelty + natural + mainland + remote
+  return novelty + tier + mainland
 }
 
 /** Every Chinese voice, best first — for a picker the learner can listen through. */

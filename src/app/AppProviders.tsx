@@ -36,7 +36,7 @@ interface AppState {
 }
 
 const emptyCounts = { all: 0, unreviewed: 0, wrong: 0, 'new-1': 0, 'new-2': 0, 'new-3': 0, familiar: 0 }
-const defaultSettings: AppSettings = { id: 'settings', continuousFlipListening: false, useOfflineSpeech: false, useNeuralVoice: true, backupReminderDismissedAt: null, appVersion: 1, schemaVersion: 1 }
+const defaultSettings: AppSettings = { id: 'settings', continuousFlipListening: false, useOfflineSpeech: false, useNeuralVoice: false, backupReminderDismissedAt: null, appVersion: 1, schemaVersion: 1 }
 const Context = createContext<AppState | null>(null)
 
 export function AppProviders({ children }: { children: ReactNode }) {

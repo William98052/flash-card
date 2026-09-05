@@ -32,7 +32,7 @@ function StudyRoute() {
   const card = session ? app.cards.find((item) => item.id === session.cardIds[session.currentIndex]) : undefined
   useEffect(() => { if (session?.status === 'active' && card) void app.markShown(session.id) }, [session?.id, session?.currentIndex, card?.id])
   useEffect(() => setTone({ status: 'idle' }), [card?.id])
-  const neuralVoiceOn = app.settings.useNeuralVoice ?? true
+  const neuralVoiceOn = app.settings.useNeuralVoice ?? false
   useEffect(() => {
     // Fetch the neural voice once, in the background. Playback never waits for
     // it: until it is ready, "Hear it" uses the system voice.
@@ -158,7 +158,7 @@ function SettingsRoute() {
       setVoices(listChineseVoices(all).map((item) => ({ name: `${item.name} (${item.lang})`, uri: item.voiceURI }))))
   }, [])
   return <SettingsPage
-    neuralVoice={{ enabled: app.settings.useNeuralVoice ?? true, installed: neural.installed, progress: neural.progress }}
+    neuralVoice={{ enabled: app.settings.useNeuralVoice ?? false, installed: neural.installed, progress: neural.progress }}
     onNeuralVoiceChange={(value) => void app.updateSettings({ useNeuralVoice: value })}
     onInstallNeuralVoice={async () => {
       setNeural((prior) => ({ ...prior, progress: 0 }))
