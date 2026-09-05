@@ -672,3 +672,24 @@ which engine actually spoke is best done by wrapping both
 Toggling a React-controlled checkbox from a test is unreliable; writing the
 preference straight into IndexedDB (`hanzi-flash-practice` → `settings`) and
 reloading gives a clean comparison.
+
+### Reading the phrases, not just the character
+
+The compounds and examples on the back of a card are where the useful
+pronunciation practice is, so each row's pinyin is its own button and reads that
+whole phrase — 重击 rather than 重. Phrases go through the same routine as the
+character, so they follow whichever voice is active, and they are prepared in
+the background alongside it so playback is immediate.
+
+This forced a markup change: the card back used to sit inside the `<button>`
+that flips the card, and **a button cannot nest inside another button**. The
+front face is still a button, so flipping by click and by keyboard is unchanged,
+but once flipped the card is a plain element that contains its own buttons.
+
+### Keeping local notes out of a public repo
+
+`handoff.md` carries absolute paths like `/Users/<name>/...`, which expose the
+machine's username. It is now in `.gitignore`. It reached the public repo once,
+through a `git add -A` that swept up a file deliberately left untracked all
+session, and had to be removed by amending and force-pushing. Stage explicitly,
+or check `git status` before committing, rather than trusting `-A`.

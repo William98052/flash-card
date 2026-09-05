@@ -9,3 +9,6 @@ tsconfig.tsbuildinfo
 
 # Vosk speech model (downloaded, see npm run fetch:model)
 public/models/
+
+# Agent handoff notes: local paths, not for the public repo
+handoff.md
