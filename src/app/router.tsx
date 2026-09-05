@@ -33,6 +33,16 @@ function StudyRoute() {
   useEffect(() => { if (session?.status === 'active' && card) void app.markShown(session.id) }, [session?.id, session?.currentIndex, card?.id])
   useEffect(() => setTone({ status: 'idle' }), [card?.id])
   const neuralVoiceOn = app.settings.useNeuralVoice ?? false
+  const speakText = async (text: string): Promise<boolean> => {
+    // Only use the neural voice when this text is already prepared, so a click
+    // never waits on a download or a synthesis.
+    if (neuralVoiceOn && neuralVoiceCache().ready(text)) {
+      try { await playAudio(await neuralVoiceCache().get(text)); return true }
+      catch { /* fall through to the system voice */ }
+    }
+    if (neuralVoiceOn) neuralVoiceCache().prefetch(text)
+    return await speakWhenReady(text, window.speechSynthesis, (value) => new SpeechSynthesisUtterance(value), app.settings.ttsVoiceUri)
+  }
   useEffect(() => {
     // Fetch the neural voice once, in the background. Playback never waits for
     // it: until it is ready, "Hear it" uses the system voice.
@@ -45,7 +55,11 @@ function StudyRoute() {
   useEffect(() => {
     // Prepare the reading while the learner looks at the card, so pressing
     // "Hear it" plays immediately instead of waiting a second or two.
-    if (neuralVoiceOn && card) neuralVoiceCache().prefetch(card.character)
+    if (!neuralVoiceOn || !card) return
+    neuralVoiceCache().prefetch(card.character)
+    for (const item of card.contentType === 'compounds' ? card.compounds : card.examples) {
+      neuralVoiceCache().prefetch(item.text)
+    }
   }, [neuralVoiceOn, card?.id])
   useEffect(() => {
     let restartAllowed = true
@@ -82,15 +96,8 @@ function StudyRoute() {
   }, [adapter, app.settings.continuousFlipListening])
   if (!session) return <Navigate to="/" replace />
   if (session.status !== 'active' || !card) return <Navigate to={`/summary/${session.id}`} replace />
-  return <StudyPage card={card} session={session} speechAvailable={adapter.capability === 'available'} transcript={speech.transcript} assessmentReason={speech.reason} speechStatus={speech.status} voiceFlipToken={speech.flipToken} onSpeak={async () => {
-    // Only use the neural voice when its audio is already prepared, so a click
-    // never waits on a download or a synthesis.
-    if (neuralVoiceOn && neuralVoiceCache().ready(card.character)) {
-      try { await playAudio(await neuralVoiceCache().get(card.character)); return }
-      catch { /* fall through to the system voice */ }
-    }
-    if (neuralVoiceOn) neuralVoiceCache().prefetch(card.character)
-    const spoken = await speakWhenReady(card.character, window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), app.settings.ttsVoiceUri)
+  return <StudyPage card={card} session={session} speechAvailable={adapter.capability === 'available'} transcript={speech.transcript} assessmentReason={speech.reason} speechStatus={speech.status} voiceFlipToken={speech.flipToken} onSpeakText={(text) => void speakText(text)} onSpeak={async () => {
+    const spoken = await speakText(card.character)
     if (!spoken) setTone({ status: 'idle', result: { status: 'unclear', message: 'This browser has no Chinese voice installed, so playback is unavailable.' } })
   }}
   onCheckTone={async () => {

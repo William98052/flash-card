@@ -12,6 +12,7 @@ interface Props {
   toneStatus?: 'idle' | 'recording' | 'analyzing'
   toneResult?: { status: 'match' | 'mismatch' | 'unclear'; message: string }
   onSpeak?(): void
+  onSpeakText?(text: string): void
   onCheckTone?(): void
   onDecision(decision: Decision): void
   onNext(): void
@@ -19,7 +20,7 @@ interface Props {
   onListen?(): void
 }
 
-export function StudyPage({ card, session, speechAvailable, transcript, assessmentReason, speechStatus, voiceFlipToken = 0, toneStatus = 'idle', toneResult, onSpeak, onCheckTone, onDecision, onNext, onTag, onListen }: Props) {
+export function StudyPage({ card, session, speechAvailable, transcript, assessmentReason, speechStatus, voiceFlipToken = 0, toneStatus = 'idle', toneResult, onSpeak, onSpeakText, onCheckTone, onDecision, onNext, onTag, onListen }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [decision, setDecision] = useState<Decision | null>(session.pendingDecision)
   useEffect(() => { setFlipped(false); setDecision(session.pendingDecision) }, [card.id])
@@ -47,18 +48,30 @@ export function StudyPage({ card, session, speechAvailable, transcript, assessme
   return (
     <div className="study-layout">
       <header className="study-meta"><a href="/">← Home</a><strong>{progress} / {session.cardIds.length}</strong><span>Correct this round {session.correctCount}</span></header>
-      <button className={`flash-card ${flipped ? 'is-flipped' : ''}`} aria-label={flipped ? 'Card back' : 'Flip card'} onClick={() => !flipped && setFlipped(true)}>
-        {!flipped ? <span className="character-face">{card.character}</span> : (
+      {/* Once flipped the card is no longer a button: its rows contain their own
+          buttons for reading each phrase, and buttons cannot nest. */}
+      {!flipped ? (
+        <button className="flash-card" aria-label="Flip card" onClick={() => setFlipped(true)}>
+          <span className="character-face">{card.character}</span>
+        </button>
+      ) : (
+        <div className="flash-card is-flipped" aria-label="Card back">
           <span className="card-back">
             <span className="card-character-small">{card.character}</span>
             <strong className="pinyin">{card.readings.map((reading) => reading.pinyin).join(' · ')}</strong>
             <span className="meaning">{card.englishMeaning}</span>
             <span className="content-list">
-              {(card.contentType === 'compounds' ? card.compounds : card.examples).map((item) => <span className="content-item" key={item.text}><b>{item.text}</b><i>{item.pinyin}</i><small>{item.english}</small></span>)}
+              {(card.contentType === 'compounds' ? card.compounds : card.examples).map((item) => (
+                <span className="content-item" key={item.text}>
+                  <b>{item.text}</b>
+                  <button type="button" className="pinyin-button" aria-label={`Read ${item.text}`} onClick={() => onSpeakText?.(item.text)}>{item.pinyin}</button>
+                  <small>{item.english}</small>
+                </span>
+              ))}
             </span>
           </span>
-        )}
-      </button>
+        </div>
+      )}
       <p className="flip-hint">{flipped ? 'Check the answer, then judge yourself' : 'Click the card, press Space, or say “翻”'}</p>
       {!speechAvailable ? <p className="notice">Speech input is unavailable in this browser; you can still study manually.</p> : <button className="secondary-button" onClick={onListen}>{speechStatus === 'listening' ? 'Listening…' : 'Speak and check'}</button>}
       {speechAvailable && <p className="speech-tip">Tip: say it twice, e.g. “bì bì”. Chrome often returns nothing for a single short syllable.</p>}

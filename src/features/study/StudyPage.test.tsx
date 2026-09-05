@@ -86,3 +86,23 @@ it('tells me to repeat the syllable, which is what Chrome needs to return a resu
   render(<StudyPage card={seed[0] as CharacterCard} session={session} speechAvailable onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
   expect(screen.getByText(/say it twice/i)).toBeVisible()
 })
+
+it('reads the whole phrase aloud when its pinyin is clicked', async () => {
+  const user = userEvent.setup()
+  const onSpeakText = vi.fn()
+  const card = seed[0] as CharacterCard
+  const items = card.contentType === 'compounds' ? card.compounds : card.examples
+  render(<StudyPage card={card} session={session} speechAvailable onSpeakText={onSpeakText} onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
+  await user.click(screen.getByRole('button', { name: /Flip card/ }))
+  await user.click(screen.getByRole('button', { name: `Read ${items[0].text}` }))
+  // The whole phrase, e.g. 载重 - not just the card's character.
+  expect(onSpeakText).toHaveBeenCalledWith(items[0].text)
+  expect(items[0].text.length).toBeGreaterThan(1)
+})
+
+it('keeps the flipped card free of nested buttons', async () => {
+  const user = userEvent.setup()
+  render(<StudyPage card={seed[0] as CharacterCard} session={session} speechAvailable onSpeakText={() => {}} onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
+  await user.click(screen.getByRole('button', { name: /Flip card/ }))
+  expect(document.querySelector('button button')).toBeNull()
+})
