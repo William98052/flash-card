@@ -32,3 +32,9 @@ it('allows manual override and settles only when Next is clicked', async () => {
   expect(onNext).toHaveBeenCalledOnce()
   expect(screen.getByText(/浏览器不支持语音/)).toBeVisible()
 })
+
+it('flips the front when the speech controller hears the isolated command', () => {
+  const { rerender } = render(<StudyPage card={seed[0] as CharacterCard} session={session} speechAvailable voiceFlipToken={0} onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
+  rerender(<StudyPage card={seed[0] as CharacterCard} session={session} speechAvailable voiceFlipToken={1} onDecision={() => {}} onNext={() => {}} onTag={() => {}} />)
+  expect(screen.getByText(seed[0].englishMeaning)).toBeVisible()
+})

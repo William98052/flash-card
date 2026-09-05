@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { HomePage } from '@/features/home/HomePage'
 import { StudyPage } from '@/features/study/StudyPage'
@@ -6,6 +6,9 @@ import { SummaryPage } from '@/features/study/SummaryPage'
 import { LibraryPage } from '@/features/library/LibraryPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { useAppData } from './AppProviders'
+import { createSpeechAdapter } from '@/speech/speech-adapter'
+import { shouldRestartContinuous } from '@/speech/speech-adapter'
+import { assessPronunciation, isFlipCommand } from '@/speech/normalize'
 
 function HomeRoute() {
   const app = useAppData(); const navigate = useNavigate()
@@ -15,12 +18,32 @@ function HomeRoute() {
 
 function StudyRoute() {
   const { sessionId = '' } = useParams(); const app = useAppData(); const navigate = useNavigate()
+  const [adapter] = useState(() => createSpeechAdapter(window))
+  const [speech, setSpeech] = useState({ transcript: '', reason: '', status: 'idle', flipToken: 0 })
   const session = app.sessions.find((item) => item.id === sessionId)
   const card = session ? app.cards.find((item) => item.id === session.cardIds[session.currentIndex]) : undefined
   useEffect(() => { if (session?.status === 'active' && card) void app.markShown(session.id) }, [session?.id, session?.currentIndex, card?.id])
+  useEffect(() => {
+    let restartAllowed = true
+    return adapter.subscribe((event) => {
+    if (event.type === 'listening') setSpeech((prior) => ({ ...prior, status: 'listening' }))
+    if (event.type === 'stopped') { setSpeech((prior) => ({ ...prior, status: 'idle' })); if (restartAllowed && shouldRestartContinuous(app.settings.continuousFlipListening, event)) window.setTimeout(() => adapter.start(), 250) }
+    if (event.type === 'error') { restartAllowed = false; setSpeech((prior) => ({ ...prior, status: 'idle', reason: event.reason === 'denied' ? '麦克风权限被拒绝，请在浏览器设置中开启。' : event.reason === 'timeout' ? '没有听到清晰内容，请重试或手动判断。' : '语音识别失败，请使用手动模式。' })) }
+    if (event.type === 'result' && card && session) {
+      if (isFlipCommand(event.transcript)) { setSpeech((prior) => ({ ...prior, transcript: event.transcript, reason: '已听到“翻”。', flipToken: prior.flipToken + 1 })); return }
+      const result = assessPronunciation(event, card)
+      setSpeech((prior) => ({ ...prior, transcript: result.transcript, reason: result.reason }))
+      if (result.status !== 'manual') void app.setDecision(session.id, result.status)
+    }
+    })
+  }, [adapter, card?.id, session?.id, app.settings.continuousFlipListening])
+  useEffect(() => {
+    if (app.settings.continuousFlipListening && adapter.capability === 'available') adapter.start()
+    return () => { if (app.settings.continuousFlipListening) adapter.stop() }
+  }, [adapter, app.settings.continuousFlipListening])
   if (!session) return <Navigate to="/" replace />
   if (session.status !== 'active' || !card) return <Navigate to={`/summary/${session.id}`} replace />
-  return <StudyPage card={card} session={session} speechAvailable={'webkitSpeechRecognition' in window || 'SpeechRecognition' in window} onDecision={(decision) => void app.setDecision(session.id, decision)} onNext={async () => { const next = await app.advance(session.id); if (next.status === 'completed') navigate(`/summary/${session.id}`) }} onTag={(id, enabled) => void app.setTag(card.id, id, enabled)} />
+  return <StudyPage card={card} session={session} speechAvailable={adapter.capability === 'available'} transcript={speech.transcript} assessmentReason={speech.reason} speechStatus={speech.status} voiceFlipToken={speech.flipToken} onListen={() => adapter.start()} onDecision={(decision) => void app.setDecision(session.id, decision)} onNext={async () => { const next = await app.advance(session.id); if (next.status === 'completed') navigate(`/summary/${session.id}`) }} onTag={(id, enabled) => void app.setTag(card.id, id, enabled)} />
 }
 
 function SummaryRoute() {

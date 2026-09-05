@@ -7,16 +7,19 @@ interface Props {
   speechAvailable: boolean
   transcript?: string
   assessmentReason?: string
+  speechStatus?: string
+  voiceFlipToken?: number
   onDecision(decision: Decision): void
   onNext(): void
   onTag(libraryId: LibraryId, enabled: boolean): void
   onListen?(): void
 }
 
-export function StudyPage({ card, session, speechAvailable, transcript, assessmentReason, onDecision, onNext, onTag, onListen }: Props) {
+export function StudyPage({ card, session, speechAvailable, transcript, assessmentReason, speechStatus, voiceFlipToken = 0, onDecision, onNext, onTag, onListen }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [decision, setDecision] = useState<Decision | null>(session.pendingDecision)
   useEffect(() => { setFlipped(false); setDecision(null) }, [card.id])
+  useEffect(() => { if (voiceFlipToken > 0) setFlipped(true) }, [voiceFlipToken])
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
@@ -46,7 +49,7 @@ export function StudyPage({ card, session, speechAvailable, transcript, assessme
         )}
       </button>
       <p className="flip-hint">{flipped ? '检查答案，然后作出判断' : '点击字卡、按空格键，或说“翻”'}</p>
-      {!speechAvailable ? <p className="notice">浏览器不支持语音或麦克风不可用；你仍可完整手动学习。</p> : <button className="secondary-button" onClick={onListen}>朗读并识别</button>}
+      {!speechAvailable ? <p className="notice">浏览器不支持语音或麦克风不可用；你仍可完整手动学习。</p> : <button className="secondary-button" onClick={onListen}>{speechStatus === 'listening' ? '正在聆听…' : '朗读并识别'}</button>}
       {(transcript || assessmentReason) && <div className="speech-result" aria-live="polite"><b>识别到：{transcript || '无结果'}</b><span>{assessmentReason}</span></div>}
       {flipped && <>
         <div className="decision-row" aria-label="本题判断">

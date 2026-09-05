@@ -17,3 +17,19 @@ it('searches content and previews unique Han characters before adding', async ()
   await user.click(screen.getByRole('button', { name: /确认添加/ }))
   expect(onAdd).toHaveBeenCalledWith(['新'])
 })
+
+it('filters by library and applies a tag to selected cards in one action', async () => {
+  const user = userEvent.setup(); const onTag = vi.fn(); const cards = seed.slice(0, 3) as CharacterCard[]
+  const memberships = new Map([['familiar', new Set([cards[0].id])]]) as never
+  render(<LibraryPage cards={cards} memberships={memberships} onAdd={() => {}} onDelete={() => {}} onTag={onTag} />)
+  await user.selectOptions(screen.getByRole('combobox', { name: '按字库筛选' }), 'familiar')
+  expect(screen.getByText(cards[0].character)).toBeVisible()
+  expect(screen.queryByText(cards[1].character)).not.toBeInTheDocument()
+  await user.selectOptions(screen.getByRole('combobox', { name: '按字库筛选' }), 'all-cards')
+  await user.click(screen.getByRole('checkbox', { name: `选择 ${cards[0].character}` }))
+  await user.click(screen.getByRole('checkbox', { name: `选择 ${cards[1].character}` }))
+  await user.selectOptions(screen.getByRole('combobox', { name: '批量字库' }), 'new-1')
+  await user.click(screen.getByRole('button', { name: '批量加入' }))
+  expect(onTag).toHaveBeenCalledWith(cards[0].id, 'new-1', true)
+  expect(onTag).toHaveBeenCalledWith(cards[1].id, 'new-1', true)
+})

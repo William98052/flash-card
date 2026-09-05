@@ -25,6 +25,10 @@ export interface SpeechAdapter {
   subscribe(listener: Listener): () => void
 }
 
+export function shouldRestartContinuous(enabled: boolean, event: SpeechEvent): boolean {
+  return enabled && event.type === 'stopped'
+}
+
 export function createSpeechAdapter(targetWindow: Window): SpeechAdapter {
   const Constructor = (targetWindow as unknown as { SpeechRecognition?: RecognitionConstructor; webkitSpeechRecognition?: RecognitionConstructor }).SpeechRecognition
     ?? (targetWindow as unknown as { webkitSpeechRecognition?: RecognitionConstructor }).webkitSpeechRecognition
@@ -46,7 +50,7 @@ export function createSpeechAdapter(targetWindow: Window): SpeechAdapter {
   return {
     capability: 'available',
     start() { try { recognition.start() } catch { emit({ type: 'error', reason: 'failed' }) } },
-    stop() { recognition.stop() },
+    stop() { try { recognition.stop() } catch { /* already stopped */ } },
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener) },
   }
 }

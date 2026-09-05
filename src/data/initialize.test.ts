@@ -4,15 +4,16 @@ import { FlashCardDatabase } from './database'
 import { initializeDatabase } from './initialize'
 import type { CharacterCard } from '@/domain/types'
 
-const names: string[] = []
+const databases: FlashCardDatabase[] = []
 const createDb = () => {
   const name = `flash-card-test-${crypto.randomUUID()}`
-  names.push(name)
-  return new FlashCardDatabase(name)
+  const db = new FlashCardDatabase(name)
+  databases.push(db)
+  return db
 }
 
 afterEach(async () => {
-  await Promise.all(names.splice(0).map((name) => new FlashCardDatabase(name).delete()))
+  await Promise.all(databases.splice(0).map(async (db) => { db.close(); await db.delete() }))
 })
 
 describe('initializeDatabase', () => {
@@ -33,6 +34,7 @@ describe('initializeDatabase', () => {
     db.close()
 
     const reopened = new FlashCardDatabase(db.name)
+    databases.push(reopened)
     await initializeDatabase(reopened, seed as CharacterCard[])
     expect((await reopened.cards.get('seed-0001'))?.englishMeaning).toBe('my edit')
     expect((await reopened.reviews.get('seed-0001'))?.reviewCount).toBe(7)

@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { createSpeechAdapter } from './speech-adapter'
+import { createSpeechAdapter, shouldRestartContinuous } from './speech-adapter'
 
 it('reports unsupported browsers without throwing', () => {
   const adapter = createSpeechAdapter({} as Window)
@@ -26,4 +26,10 @@ it('emits listening, result, and stopped states from browser recognition', () =>
   expect(listener).toHaveBeenCalledWith({ type: 'listening' })
   adapter.stop()
   expect(listener).toHaveBeenCalledWith({ type: 'stopped' })
+})
+
+it('restarts continuous listening only after a normal stop', () => {
+  expect(shouldRestartContinuous(true, { type: 'stopped' })).toBe(true)
+  expect(shouldRestartContinuous(true, { type: 'error', reason: 'denied' })).toBe(false)
+  expect(shouldRestartContinuous(false, { type: 'stopped' })).toBe(false)
 })
