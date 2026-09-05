@@ -538,8 +538,13 @@ Chinese voice exists. Curiously, the same system voices produce silence via the
 
 ### Offline recognition (vosk-browser)
 
-`vosk-browser` (Kaldi in WebAssembly) with the small Mandarin model is the
-default engine, switchable in Settings. It records a **fixed 2.5s window**
+**Outcome: tried, measured against real speech, and parked.** Accuracy was
+worse than Chrome's cloud recognizer in practice, so the setting now defaults
+off. The engine, its tests and the toggle remain in place for anyone who wants
+to revisit it with a larger model.
+
+`vosk-browser` (Kaldi in WebAssembly) with the small Mandarin model is an
+alternative engine, switchable in Settings. It records a **fixed 2.5s window**
 rather than leaving endpointing to the browser, which is what removes the
 "must speak twice" problem at its root. One recording answers both questions:
 transcript for the syllable, pitch contour for the tone.
@@ -586,3 +591,84 @@ These blocked verification repeatedly and should be expected again:
   not merely observed to "apply".
 - Vite ignores the `PORT` environment variable by default; `server.port` now
   honours it so the dev server need not hold port 5173.
+
+---
+
+## Playback Findings (2026-09-05)
+
+Once recognition was usable, attention moved to the "Hear it" button. Playback
+turned out to matter more than expected for study, and to have its own traps.
+
+### The voice being used was the wrong one
+
+`pickChineseVoice` originally preferred any `zh-CN` voice that ran locally, and
+so selected **Eddy**. macOS ships a set of *character* voices — Eddy, Flo,
+Grandma, Grandpa, Reed, Rocko, Sandy, Shelley — in every language, and they
+sound like novelties rather than speech. This was the whole of the "quality"
+complaint: nothing was broken, the app was simply choosing a joke voice.
+
+Voices are now ranked, best first:
+
+1. **Chrome's Google Mandarin voice**, judged the best available. It is a
+   *network* voice, so it is preferred despite needing connectivity.
+2. **Tingting** (zh-CN) and **Meijia** (zh-TW), the natural local voices.
+3. Everything else.
+4. Character voices, last.
+
+An explicit choice in Settings always wins over the ranking. macOS *enhanced*
+voices, installed through System Settings → Accessibility → Spoken Content,
+appear in the picker automatically and are the best offline option.
+
+`speechSynthesis.getVoices()` **returns an empty array on the first call** — the
+list populates asynchronously — so waiting for `voiceschanged` is required
+before concluding that no Chinese voice exists. Note also that the same system
+voices produce silence through the `say` CLI on this machine while working
+correctly inside Chrome, which makes CLI-generated Mandarin audio impossible
+here.
+
+### Neural TTS (Piper), available but not the default
+
+`@diffusionstudio/vits-web` runs Piper's `zh_CN-huayan-medium` VITS model in
+WebAssembly, entirely locally. It is offered as an opt-in upgrade rather than
+the default, because the Google voice was judged better in practice and a 60 MB
+download should be a choice.
+
+- Synthesis takes **1–2 seconds per character**, far too slow for a button
+  press. Audio is therefore prepared in the background as soon as a card is
+  shown, and cached; replaying prepared audio is instant (2.0s to prepare, 0ms
+  to replay). The cache evicts oldest-first, never caches a failure, and never
+  starts a second synthesis for a character already in flight.
+- Playback **never blocks**: the neural voice is used only when that card's
+  audio is already prepared, otherwise the system voice speaks immediately.
+- The model is ~60 MB, stored in **OPFS, which is per browser profile**, so each
+  profile downloads it once. Deploying the app means hosting it too.
+- Sizing follows the rule established by the speech model: the ONNX runtime and
+  the Piper chunk are imported on demand and excluded from precaching, leaving
+  the main bundle at 964 KB and the precache at 980 KB.
+
+### Settings UI: a control that lies is worse than no control
+
+Two bugs here were purely about the interface telling the truth, and both were
+reported as "the setting does nothing":
+
+- **Preview must play what the cards play.** It originally always used the
+  system voice, so toggling the neural voice and pressing Preview sounded
+  identical and the setting appeared dead. The setting had been working the
+  whole time.
+- **Disable what has stopped having an effect.** While the neural voice reads
+  the cards, nothing in the system-voice picker changes playback, so the
+  dropdown is disabled and says why. The Preview button stays enabled — and
+  must not be *dimmed* either, since a control that looks disabled is disabled
+  as far as the reader is concerned. Checking `isEnabled()` was not a sufficient
+  test; computed opacity was the thing that mattered.
+
+### Verifying audio
+
+Asserting that an `Audio` object was constructed proves nothing about playback.
+Confirm the `playing` event fires and `currentTime` advances. Distinguishing
+which engine actually spoke is best done by wrapping both
+`speechSynthesis.speak` and `window.Audio` and recording which fires.
+
+Toggling a React-controlled checkbox from a test is unreliable; writing the
+preference straight into IndexedDB (`hanzi-flash-practice` → `settings`) and
+reloading gives a clean comparison.
