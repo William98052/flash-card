@@ -8131,30 +8131,47 @@
     "readings": [
       {
         "pinyin": "zhòng",
-        "meaning": "to repeat",
+        "meaning": "heavy; serious; important",
         "acceptedForms": [
           "重",
           "zhong"
         ]
+      },
+      {
+        "pinyin": "chóng",
+        "meaning": "again; repeat",
+        "acceptedForms": [
+          "chong"
+        ]
       }
     ],
-    "englishMeaning": "to repeat",
+    "englishMeaning": "heavy; serious; important; again; repeat",
     "contentType": "compounds",
     "compounds": [
       {
-        "text": "载重",
-        "pinyin": "zài zhòng",
-        "english": "load"
+        "text": "重要",
+        "pinyin": "zhòng yào",
+        "english": "important"
       },
       {
-        "text": "重击",
-        "pinyin": "zhòng jī",
-        "english": "bang"
+        "text": "重量",
+        "pinyin": "zhòng liàng",
+        "english": "weight"
       },
       {
-        "text": "重样",
-        "pinyin": "zhòng yàng",
-        "english": "same"
+        "text": "严重",
+        "pinyin": "yán zhòng",
+        "english": "serious"
+      },
+      {
+        "text": "重新",
+        "pinyin": "chóng xīn",
+        "english": "again; anew"
+      },
+      {
+        "text": "重复",
+        "pinyin": "chóng fù",
+        "english": "to repeat"
       }
     ],
     "examples": [],
