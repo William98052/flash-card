@@ -32,6 +32,25 @@ export function buildHomophoneIndex(cards: Pick<CharacterCard, 'character' | 're
   return index
 }
 
+
+/**
+ * How each Latin letter's *name* sounds. Saying 闭 (bì) makes Chrome write the
+ * letter "B", because B is said "bee" - it heard correctly and spelled it as a
+ * letter. Only a transcript that is a single letter is expanded this way; a
+ * longer romanized word is left alone.
+ */
+const LETTER_READINGS: Record<string, string[]> = {
+  a: ['ei'], b: ['bi'], c: ['xi', 'si'], d: ['di'], e: ['yi'], f: ['aifu'],
+  g: ['ji'], h: ['eiqi'], i: ['ai'], j: ['jie'], k: ['kei'], l: ['ailu'],
+  m: ['aimu'], n: ['en'], o: ['ou'], p: ['pi'], q: ['kiu'], r: ['a'],
+  s: ['esi'], t: ['ti'], u: ['you'], v: ['wei'], w: ['dabuliu'], x: ['eksi'],
+  y: ['wai'], z: ['zi', 'zei'],
+}
+
+export function readingsForLetter(normalized: string): string[] {
+  return normalized.length === 1 ? LETTER_READINGS[normalized] ?? [] : []
+}
+
 function editDistance(a: string, b: string): number {
   if (a === b) return 0
   const previous = Array.from({ length: b.length + 1 }, (_, i) => i)
@@ -73,6 +92,12 @@ export function assessPronunciation(
         if (expectedReadings.has(reading)) {
           return { status: 'correct', reason: `Heard ${character}, which is pronounced the same way.`, transcript: result.transcript }
         }
+      }
+    }
+    // Chrome spelled the syllable as a letter name, e.g. "B" for bì.
+    for (const spoken of readingsForLetter(normalized)) {
+      if (expectedReadings.has(spoken)) {
+        return { status: 'correct', reason: `Heard the letter “${normalized.toUpperCase()}”, which is said the same way.`, transcript: result.transcript }
       }
     }
     // A near miss in a romanized transcript, e.g. a dropped final letter.

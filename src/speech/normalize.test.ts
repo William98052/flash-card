@@ -69,3 +69,31 @@ describe('constrained matching against the card\'s known readings', () => {
     expect(assessPronunciation({ transcript: 'hang', confidence: .9 }, card, { index }).status).toBe('correct')
   })
 })
+
+describe('single letters that Chrome writes instead of a syllable', () => {
+  const bi = { character: '闭', readings: [{ pinyin: 'bì', meaning: 'to close', acceptedForms: [] }] } as unknown as CharacterCard
+
+  it('accepts the letter B for bì, since the letter is said "bee"', () => {
+    expect(assessPronunciation({ transcript: 'B', confidence: .9 }, bi).status).toBe('correct')
+    expect(assessPronunciation({ transcript: 'b.', confidence: .9 }, bi).status).toBe('correct')
+  })
+
+  it('handles the other letters whose names are Chinese syllables', () => {
+    const di = { character: '第', readings: [{ pinyin: 'dì' }] } as unknown as CharacterCard
+    const pi = { character: '皮', readings: [{ pinyin: 'pí' }] } as unknown as CharacterCard
+    const ji = { character: '几', readings: [{ pinyin: 'jǐ' }] } as unknown as CharacterCard
+    expect(assessPronunciation({ transcript: 'D', confidence: .9 }, di).status).toBe('correct')
+    expect(assessPronunciation({ transcript: 'P', confidence: .9 }, pi).status).toBe('correct')
+    expect(assessPronunciation({ transcript: 'G', confidence: .9 }, ji).status).toBe('correct')
+  })
+
+  it('does not let a letter match an unrelated reading', () => {
+    expect(assessPronunciation({ transcript: 'B', confidence: .9 }, { character: '好', readings: [{ pinyin: 'hǎo' }] } as unknown as CharacterCard).status).toBe('incorrect')
+  })
+
+  it('only expands a lone letter, never a real word', () => {
+    // "bi" spelled out is already handled by the normal path; a longer latin
+    // transcript must not be treated as a letter name.
+    expect(assessPronunciation({ transcript: 'bee', confidence: .9 }, bi).status).toBe('incorrect')
+  })
+})
