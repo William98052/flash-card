@@ -42,6 +42,12 @@ button, a { min-height: 44px; }
 .primary-link, .primary-button, .next-button { color: white; background: var(--red); }
 .primary-link:hover, .primary-button:hover, .next-button:hover { background: var(--red-dark); }
 .secondary-link, .secondary-button { color: var(--red); background: #f2e5d2; }
+.character-search { display: grid; gap: .6rem; max-width: 620px; padding: 1.25rem; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); box-shadow: 0 10px 30px rgb(69 38 25 / 7%); }
+.character-search > label { color: var(--red-dark); font-weight: 700; }
+.character-search > div { display: flex; gap: .65rem; }
+.character-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0 1rem; border: 1px solid var(--line); border-radius: 99px; background: white; }
+.character-search button { padding: .65rem 1.15rem; border: 0; border-radius: 99px; color: white; background: var(--red); font-weight: 700; cursor: pointer; }
+.character-search [role="alert"] { margin: 0; color: var(--red-dark); font-weight: 600; }
 .library-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 1rem; }
 .library-card { display: grid; min-height: 230px; padding: 1.35rem; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); box-shadow: 0 10px 30px rgb(69 38 25 / 7%); }
 .library-card h3 { margin: .5rem 0; font: 700 1.45rem 'Songti SC', 'STSong', serif; }

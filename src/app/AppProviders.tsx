@@ -18,6 +18,7 @@ interface AppState {
   settings: AppSettings
   refresh(): Promise<void>
   startSession(libraryId: LibraryId): Promise<string>
+  startCardSession(cardId: string): Promise<string>
   markShown(sessionId: string): Promise<void>
   setDecision(sessionId: string, decision: Decision): Promise<void>
   advance(sessionId: string): Promise<StudySession>
@@ -73,6 +74,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
       const eligible: string[] = []
       for (const id of ids) if ((await db.cards.get(id))?.contentStatus === 'complete') eligible.push(id)
       const session = createSession(libraryId, eligible, (values) => values.sort(() => Math.random() - .5), () => new Date().toISOString())
+      await db.sessions.add(session); await refresh(); return session.id
+    },
+    async startCardSession(cardId) {
+      const card = await db.cards.get(cardId)
+      if (!card || card.contentStatus !== 'complete') throw new Error('Cannot study a missing or incomplete card')
+      const session = createSession('all', [cardId], (values) => values, () => new Date().toISOString())
       await db.sessions.add(session); await refresh(); return session.id
     },
     async markShown(sessionId) {

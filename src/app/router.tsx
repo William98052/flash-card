@@ -17,7 +17,7 @@ import { assessTone, expectedToneFromPinyin, extractContour } from '@/speech/ton
 function HomeRoute() {
   const app = useAppData(); const navigate = useNavigate()
   const active = app.sessions.find((session) => session.status === 'active')
-  return <HomePage counts={app.counts} activeSessionId={active?.id} onStart={async (id) => navigate(`/study/${await app.startSession(id)}`)} />
+  return <HomePage counts={app.counts} cards={app.cards} activeSessionId={active?.id} onStart={async (id) => navigate(`/study/${await app.startSession(id)}`)} onOpenCard={async (cardId) => navigate(`/study/${await app.startCardSession(cardId)}`)} />
 }
 
 function StudyRoute() {
