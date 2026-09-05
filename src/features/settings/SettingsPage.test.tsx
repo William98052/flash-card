@@ -30,3 +30,19 @@ it('lets me choose and preview the reading voice', async () => {
   await user.click(screen.getByRole('button', { name: /preview/i }))
   expect(onPreviewVoice).toHaveBeenCalled()
 })
+
+it('disables the system voice picker while the high-quality voice is in charge', () => {
+  const props = {
+    continuousListening: false, speechAvailable: true, offlineSpeech: false,
+    voices: [{ name: 'Tingting', uri: 'tingting' }], voiceUri: 'tingting',
+    onVoiceChange: () => {}, onPreviewVoice: () => {}, onOfflineSpeechChange: () => {},
+    onListeningChange: () => {}, onResetDefaults: () => {}, onEraseAll: () => {},
+  }
+  const { rerender } = render(<SettingsPage {...props} neuralVoice={{ enabled: true, installed: true, progress: null }} />)
+  expect(screen.getByRole('combobox', { name: /reading voice/i })).toBeDisabled()
+  // Preview stays usable: it plays whichever voice is actually in use.
+  expect(screen.getByRole('button', { name: /preview/i })).toBeEnabled()
+
+  rerender(<SettingsPage {...props} neuralVoice={{ enabled: false, installed: true, progress: null }} />)
+  expect(screen.getByRole('combobox', { name: /reading voice/i })).toBeEnabled()
+})

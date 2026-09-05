@@ -92,3 +92,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 
 .neural-voice { margin: .6rem 0; padding: .7rem; border-radius: .5rem; background: rgba(140, 47, 35, .06); }
 .neural-voice p { margin: 0 0 .5rem; }
+
+.voice-choice.is-inactive { opacity: .55; }
+.voice-choice.is-inactive select { cursor: not-allowed; }
