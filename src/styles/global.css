@@ -93,5 +93,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .neural-voice { margin: .6rem 0; padding: .7rem; border-radius: .5rem; background: rgba(140, 47, 35, .06); }
 .neural-voice p { margin: 0 0 .5rem; }
 
-.voice-choice.is-inactive { opacity: .55; }
+/* Dim only the controls that stop having an effect. The Preview button still
+   works - it plays whichever voice is in use - so it must not look disabled. */
+.voice-choice.is-inactive .field,
+.voice-choice.is-inactive > p { opacity: .55; }
 .voice-choice.is-inactive select { cursor: not-allowed; }
+.voice-choice.is-inactive .secondary-button { opacity: 1; }
