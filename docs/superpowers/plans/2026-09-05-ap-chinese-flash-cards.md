@@ -408,3 +408,181 @@ Expected: all unit/integration/E2E tests pass, seed validation reports exactly 1
 
 Record Chrome/Edge microphone permission and recognition checks, another-browser manual-mode check, install/update/offline launch, clean-profile JSON recovery, keyboard-only navigation, reduced motion, and representative content sampling in `README.md` without claiming unchecked results.
 
+
+---
+
+## Post-Implementation Findings (2026-09-05)
+
+Everything below was measured on this machine against Chrome 152 on macOS,
+during a session that translated the UI to English and made speech usable.
+Facts are separated from what remains unverified. Several of these were learned
+by shipping a regression first, so they are written down to stop the next
+person repeating them.
+
+### The original bug was not in the code
+
+Speech failed with `service-not-allowed`. The cause was that Chrome had been
+running since before the microphone was granted to it in macOS System Settings.
+**macOS binds TCC permissions when a process starts**, so an already-running
+browser never sees a newly granted permission. Quitting and reopening Chrome
+fixed it. Chrome also runs with `--no-startup-window`, so closing every window
+is not enough — it must be `⌘Q` or a kill.
+
+Diagnosis was slow because the UI collapsed six distinct
+`SpeechRecognitionErrorEvent` codes into one "recognition failed" string. The
+first real fix was diagnostic, not behavioural: map every code to a distinct,
+actionable message (`describeSpeechError`), and log the recognition lifecycle.
+
+### Chrome's recognizer: measured behaviour
+
+- **A single short syllable is abandoned.** `onaudiostart`, `onspeechstart` and
+  `onspeechend` all fire, `onend` arrives, and **no result is ever delivered**.
+  Saying the syllable twice gives it enough audio to commit. This is the reason
+  a learner finds they must speak twice, and it is what motivated the offline
+  engine.
+- **A recognition can hang with no result, no error and no end event**, which
+  strands the UI on "Listening…". A watchdog is required; do not assume `onend`
+  always arrives.
+- **`maxAlternatives = 5` alongside `interimResults` stops results arriving
+  altogether.** Repeated trials heard no speech and returned nothing, while
+  `maxAlternatives = 1` streamed normally. Keep it at 1.
+- **Never mutate a live recognition.** Changing `lang` or `processLocally` while
+  running makes Chrome drop the audio device mid-utterance and report
+  `audio-capture`. Defer configuration changes to the next `start()`.
+- **Do not open and immediately close a `getUserMedia` stream before starting
+  recognition.** The device is left mid-teardown and the recognition fails
+  instantly with `audio-capture`. Query the Permissions API instead, and only
+  open a stream when permission has not yet been granted.
+- **Calling `start()` while already running throws `InvalidStateError`** and
+  discards the in-flight attempt, so an impatient second click actively destroys
+  a working recognition. Ignore the second call.
+- **React StrictMode builds two `SpeechRecognition` objects per mount** when the
+  adapter is created in a `useState` initializer, and the strays are never
+  released. Share one adapter per window.
+- **The confidence score is not usable as a gate.** Ambient noise has scored
+  0.89 while real speech scored lower. Confidence may only choose between
+  "incorrect" and "ask the learner"; it must never veto a reading that matched.
+
+### On-device recognition: available, and unusable for Mandarin
+
+Chrome 138+ exposes `SpeechRecognition.available()` / `install()` and a
+`processLocally` flag. It is **disabled** in this codebase
+(`ON_DEVICE_ENABLED = false`), with the plumbing and its tests kept behind the
+flag. What was measured:
+
+- The local model is registered under the BCP-47 Mandarin tag **`cmn-Hans-CN`**.
+  Requesting `zh-CN` locally always fails with `language-not-supported`.
+- With the correct tag and the model installed, Chrome **captures audio and then
+  hangs**: speech start and end fire, and no result, error or end ever arrives.
+- `available()` is **not sticky across page loads** — it reports `downloadable`
+  again even after `install()` succeeded, so a one-shot probe leaves the session
+  on the network path. A post-install re-check is needed.
+- `available()` **crashes the renderer outright** in Chromium builds that expose
+  the API without the speech component behind it (reproduced against
+  Playwright's bundled Chromium). Probe only in builds declaring `Google Chrome`
+  or `Microsoft Edge` in `userAgentData.brands`, never headless or embedded
+  shells. See `canProbeOnDevice`.
+
+Chromium builds without Google's API keys — Brave, Arc, ungoogled Chromium,
+Electron shells, in-app browser panes — return `service-not-allowed`
+permanently. No permission change helps; the UI now says so explicitly.
+
+### Matching is where the accuracy actually is
+
+Recognizing a lone syllable is the hardest case for general speech recognition:
+there is no context. Judging the transcript against the card's **known** readings
+turns a guess into a decision. Three rules, all measured against the real seed:
+
+- **Homophones.** Saying 行 correctly often returns 型 or 形. **228 readings in
+  the 1,000-card seed are shared by two or more characters**; `shi` alone covers
+  25 cards. Exact-character matching marked all of these wrong.
+- **Letter names.** Chrome writes a syllable as a Latin letter when the letter's
+  name matches: 闭 (bì) comes back as **"B"**, because B is said "bee". **15
+  letters collide with readings in the seed, covering 109 cards** — B→bi,
+  G→ji (22 cards), E→yi (13), V→wei (12), J→jie (10) and others. Only a lone
+  letter is expanded; longer romanized text is left alone.
+- **Repeats.** Because Chrome drops single syllables, learners repeat themselves
+  and the transcript arrives as `"b b"`. Split on whitespace and judge each
+  attempt separately, so a repeat — or a self-correction where only the last
+  attempt was right — counts.
+
+A match settles the card automatically and reveals the answer. **A non-match
+never auto-fails**: misrecognition is common enough that failing a learner who
+spoke correctly is the worse error.
+
+### Tone checking
+
+Tone is the **shape of the pitch curve**, which Chrome discards entirely. It is
+recovered locally with autocorrelation pitch detection and no model or network.
+
+The key design point: **do not compare the learner's audio against a TTS
+reference.** Two speakers differ far more in pitch and timbre than the same
+speaker saying two different words, so a similarity score mostly reports who is
+speaking. Instead, the expected tone is read from the mark on the card's pinyin
+(`xīng`/`xíng`/`xǐng`/`xìng`), and the recorded contour is measured **in
+semitones relative to the speaker's own median**, so only its shape matters. A
+low voice and a high voice score identically for the same tone.
+
+Verified through the real pipeline: flat→1, rising→2, falling→4. Unverified:
+behaviour on real speech, where short or quiet syllables are noisy and tone 3 is
+the hardest to detect.
+
+### Playback
+
+Chrome ships **offline** Chinese voices on macOS (Tingting, Shelley, Eddy, all
+`localService: true`), so playback needs no network. Note that
+`speechSynthesis.getVoices()` **returns an empty array on first call** — the list
+populates asynchronously — so wait for `voiceschanged` before concluding that no
+Chinese voice exists. Curiously, the same system voices produce silence via the
+`say` CLI on this machine while working correctly inside Chrome.
+
+### Offline recognition (vosk-browser)
+
+`vosk-browser` (Kaldi in WebAssembly) with the small Mandarin model is the
+default engine, switchable in Settings. It records a **fixed 2.5s window**
+rather than leaving endpointing to the browser, which is what removes the
+"must speak twice" problem at its root. One recording answers both questions:
+transcript for the syllable, pitch contour for the tone.
+
+Sizing matters and nearly broke the build:
+
+- The recognizer runtime is **~6.7 MB of WASM**; a static import put it in the
+  main bundle, taking it from 960 KB to 6.77 MB and breaking the service-worker
+  precache. It must be imported on demand.
+- The model is **~42 MB**, is not committed, and is fetched by
+  `npm run fetch:model`. Both it and the lazy chunk are excluded from precaching.
+- Result: main bundle 960 KB and precache 976 KB, unchanged from before.
+- Measured: model loads in ~1.1s once cached, a 2.5s clip transcribes in
+  ~0.5–1.1s, and **silence returns an empty transcript** rather than an invented
+  one — unlike Whisper, which hallucinates on short clips.
+- Deploying this requires hosting the 42 MB model alongside the app.
+- `vosk-browser` depends on `uuid <11.1.1`, a moderate advisory with no upstream
+  fix.
+
+### Testing limitations on this machine
+
+These blocked verification repeatedly and should be expected again:
+
+- **Chrome's fake audio device delivers no samples.** `--use-fake-device-for-
+  media-stream` with a valid 16-bit PCM WAV yields `audio-capture` or
+  `speechHeard: false`. Recognizer settings cannot be A/B tested here.
+- **Chinese TTS cannot be synthesized from the CLI.** `say` with the zh_CN
+  voices produces ~0.016s of silence, so no Mandarin test audio can be generated.
+- Consequently **recognition accuracy on real Mandarin is unverified** for both
+  engines. Only plumbing was exercised. A real microphone and a human voice are
+  the only way to confirm it.
+- A browser-side diagnostic relay was added for this reason: `speechLog` writes
+  to `window.__speechLog` and mirrors to the dev server in development, so a log
+  from a real session can be read outside the browser.
+
+### Process notes
+
+- **`npx tsc --noEmit` is not sufficient.** `tsc -b` applies stricter project
+  settings and caught a test-fixture cast that `--noEmit` accepted. Run
+  `npm run build` before claiming a change is done.
+- Chrome accepted every one of `processLocally`, a mid-flight `lang` change, and
+  `maxAlternatives = 5` **without error while silently breaking recognition**.
+  Recognizer settings must be verified against a real microphone before shipping,
+  not merely observed to "apply".
+- Vite ignores the `PORT` environment variable by default; `server.port` now
+  honours it so the dev server need not hold port 5173.
