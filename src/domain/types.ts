@@ -74,6 +74,8 @@ export interface AppSettings {
   useOfflineSpeech?: boolean
   /** voiceURI of the chosen reading voice; unset means the best available. */
   ttsVoiceUri?: string
+  /** Use the downloaded neural Mandarin voice instead of a system voice. */
+  useNeuralVoice?: boolean
   backupReminderDismissedAt: string | null
   appVersion: number
   schemaVersion: number

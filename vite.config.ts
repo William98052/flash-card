@@ -35,7 +35,7 @@ export default defineConfig({
       globPatterns: ['**/*.{js,css,html,svg,json}'],
       // The speech model (~42 MB) and the lazily loaded recognizer runtime are
       // fetched on demand, never precached on install.
-      globIgnores: ['**/models/**', '**/vosk*'],
+      globIgnores: ['**/models/**', '**/vosk*', '**/ort*', '**/piper*', '**/vits-web*'],
       maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
     },
     manifest: {

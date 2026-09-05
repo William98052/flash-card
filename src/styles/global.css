@@ -89,3 +89,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 
 .field { display: flex; flex-direction: column; gap: .3rem; margin: .6rem 0; }
 .field select { padding: .45rem; border-radius: .4rem; }
+
+.neural-voice { margin: .6rem 0; padding: .7rem; border-radius: .5rem; background: rgba(140, 47, 35, .06); }
+.neural-voice p { margin: 0 0 .5rem; }
