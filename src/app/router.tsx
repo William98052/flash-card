@@ -32,7 +32,16 @@ function StudyRoute() {
   const card = session ? app.cards.find((item) => item.id === session.cardIds[session.currentIndex]) : undefined
   useEffect(() => { if (session?.status === 'active' && card) void app.markShown(session.id) }, [session?.id, session?.currentIndex, card?.id])
   useEffect(() => setTone({ status: 'idle' }), [card?.id])
-  const neuralVoiceOn = app.settings.useNeuralVoice ?? false
+  const neuralVoiceOn = app.settings.useNeuralVoice ?? true
+  useEffect(() => {
+    // Fetch the neural voice once, in the background. Playback never waits for
+    // it: until it is ready, "Hear it" uses the system voice.
+    if (!neuralVoiceOn) return
+    void isNeuralVoiceInstalled()
+      .then((installed) => (installed ? undefined : installNeuralVoice()))
+      .then(() => { if (card) neuralVoiceCache().prefetch(card.character) })
+      .catch(() => { /* stay on the system voice */ })
+  }, [neuralVoiceOn])
   useEffect(() => {
     // Prepare the reading while the learner looks at the card, so pressing
     // "Hear it" plays immediately instead of waiting a second or two.
@@ -74,10 +83,13 @@ function StudyRoute() {
   if (!session) return <Navigate to="/" replace />
   if (session.status !== 'active' || !card) return <Navigate to={`/summary/${session.id}`} replace />
   return <StudyPage card={card} session={session} speechAvailable={adapter.capability === 'available'} transcript={speech.transcript} assessmentReason={speech.reason} speechStatus={speech.status} voiceFlipToken={speech.flipToken} onSpeak={async () => {
-    if (neuralVoiceOn) {
+    // Only use the neural voice when its audio is already prepared, so a click
+    // never waits on a download or a synthesis.
+    if (neuralVoiceOn && neuralVoiceCache().ready(card.character)) {
       try { await playAudio(await neuralVoiceCache().get(card.character)); return }
       catch { /* fall through to the system voice */ }
     }
+    if (neuralVoiceOn) neuralVoiceCache().prefetch(card.character)
     const spoken = await speakWhenReady(card.character, window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), app.settings.ttsVoiceUri)
     if (!spoken) setTone({ status: 'idle', result: { status: 'unclear', message: 'This browser has no Chinese voice installed, so playback is unavailable.' } })
   }}
@@ -146,7 +158,7 @@ function SettingsRoute() {
       setVoices(listChineseVoices(all).map((item) => ({ name: `${item.name} (${item.lang})`, uri: item.voiceURI }))))
   }, [])
   return <SettingsPage
-    neuralVoice={{ enabled: app.settings.useNeuralVoice ?? false, installed: neural.installed, progress: neural.progress }}
+    neuralVoice={{ enabled: app.settings.useNeuralVoice ?? true, installed: neural.installed, progress: neural.progress }}
     onNeuralVoiceChange={(value) => void app.updateSettings({ useNeuralVoice: value })}
     onInstallNeuralVoice={async () => {
       setNeural((prior) => ({ ...prior, progress: 0 }))
