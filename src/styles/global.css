@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap');
-
 :root {
   color: #2c201c;
   background: #f8f1e5;
-  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   font-synthesis: none;
   --ink: #2c201c;
   --paper: #fffdf7;
@@ -22,11 +20,55 @@ button, a { min-height: 44px; }
 :focus-visible { outline: 3px solid #2672a4; outline-offset: 3px; }
 .skip-link { position: fixed; top: -4rem; left: 1rem; z-index: 100; padding: .7rem 1rem; background: var(--ink); color: white; }
 .skip-link:focus { top: 1rem; }
-.site-header { padding: 1.25rem clamp(1rem, 4vw, 4rem); border-bottom: 1px solid var(--line); background: rgb(255 253 247 / 84%); backdrop-filter: blur(12px); }
-.site-header h1 { margin: .15rem 0 0; font-family: 'Noto Serif SC', serif; font-size: clamp(1.8rem, 5vw, 2.8rem); color: var(--red-dark); }
+.site-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem clamp(1rem, 4vw, 4rem); border-bottom: 1px solid var(--line); background: rgb(255 253 247 / 84%); backdrop-filter: blur(12px); }
+.site-header h1 { margin: .15rem 0 0; font-family: 'Songti SC', 'STSong', serif; font-size: clamp(1.8rem, 5vw, 2.8rem); color: var(--red-dark); }
+.site-header nav { display: flex; gap: .4rem; flex-wrap: wrap; }
+.site-header nav a { display: inline-flex; align-items: center; padding: .55rem .8rem; border-radius: 99px; color: var(--ink); text-decoration: none; font-weight: 600; }
+.site-header nav a:hover { background: #f2e5d2; color: var(--red); }
 .eyebrow { margin: 0; color: var(--red); font-weight: 700; font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; }
 .page-shell { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem, 7vw, 5rem) 0; }
 .welcome-card { max-width: 720px; padding: clamp(1.4rem, 5vw, 3.5rem); border: 1px solid var(--line); border-radius: 28px; background: var(--paper); box-shadow: var(--shadow); }
-.welcome-card h2 { margin: .6rem 0 1rem; font-family: 'Noto Serif SC', serif; font-size: clamp(2rem, 7vw, 4.6rem); line-height: 1.12; }
+.welcome-card h2 { margin: .6rem 0 1rem; font-family: 'Songti SC', 'STSong', serif; font-size: clamp(2rem, 7vw, 4.6rem); line-height: 1.12; }
 .welcome-card p:last-child { color: var(--muted); line-height: 1.8; }
+.storage-note { margin: -1rem 0 2rem; color: var(--muted); font-size: .9rem; }
+.stack-lg { display: grid; gap: 2.5rem; }
+.hero-panel { display: flex; align-items: end; justify-content: space-between; gap: 2rem; padding: clamp(1.5rem, 5vw, 3.5rem); border-radius: 30px; color: white; background: linear-gradient(135deg, #8c2f23, #57211c); box-shadow: var(--shadow); }
+.hero-panel h2, .section-heading h2, .settings-card h2, .summary-card h2 { margin: .45rem 0; font-family: 'Songti SC', 'STSong', serif; font-size: clamp(1.8rem, 4vw, 3rem); }
+.hero-panel .eyebrow { color: #f8d992; }
+.progress-number { display: grid; min-width: 150px; padding: 1rem 1.3rem; border: 1px solid rgb(255 255 255 / 25%); border-radius: 18px; background: rgb(255 255 255 / 10%); }
+.progress-number strong { font-size: 1.5rem; }
+.progress-number span { opacity: .75; }
+.primary-link, .secondary-link, .primary-button, .secondary-button, .next-button { display: inline-flex; justify-content: center; align-items: center; padding: .7rem 1.05rem; border: 0; border-radius: 99px; text-decoration: none; font-weight: 700; cursor: pointer; }
+.primary-link, .primary-button, .next-button { color: white; background: var(--red); }
+.primary-link:hover, .primary-button:hover, .next-button:hover { background: var(--red-dark); }
+.secondary-link, .secondary-button { color: var(--red); background: #f2e5d2; }
+.library-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 1rem; }
+.library-card { display: grid; min-height: 230px; padding: 1.35rem; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); box-shadow: 0 10px 30px rgb(69 38 25 / 7%); }
+.library-card h3 { margin: .5rem 0; font: 700 1.45rem 'Songti SC', 'STSong', serif; }
+.library-card p { color: var(--muted); }
+.library-index { color: var(--gold); font-weight: 700; }
+.library-card-footer { display: flex; justify-content: space-between; align-items: end; margin-top: auto; }
+.library-card-footer button { padding: .6rem 1rem; border: 1px solid var(--red); border-radius: 99px; color: var(--red); background: transparent; font-weight: 700; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.study-layout { display: grid; justify-items: center; gap: 1rem; max-width: 760px; margin: 0 auto; }
+.study-meta { display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; align-items: center; color: var(--muted); }
+.study-meta a { color: var(--red); }.study-meta span { text-align: right; }
+.flash-card { width: min(100%, 570px); min-height: min(60vh, 540px); padding: 2rem; border: 1px solid var(--line); border-radius: 32px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow); cursor: pointer; }
+.character-face { font: 700 clamp(8rem, 32vw, 15rem) 'Songti SC', 'STSong', serif; color: var(--red-dark); }
+.card-back, .content-list, .content-item { display: grid; }
+.card-back { gap: .55rem; text-align: left; }
+.card-character-small { font: 700 4.5rem 'Songti SC', 'STSong', serif; color: var(--red-dark); }
+.pinyin { color: var(--red); font-size: 1.4rem; }.meaning { color: var(--muted); font-size: 1.1rem; }
+.content-list { gap: .65rem; margin-top: 1rem; }.content-item { grid-template-columns: minmax(5rem, .7fr) 1fr 1.3fr; gap: .75rem; padding-top: .65rem; border-top: 1px solid var(--line); }.content-item i { color: var(--red); }.content-item small { color: var(--muted); }
+.flip-hint { color: var(--muted); }.notice, .speech-result { padding: .8rem 1rem; border-left: 4px solid var(--gold); border-radius: 8px; background: #fff7df; }.speech-result { display: grid; width: 100%; }
+.decision-row, .button-row, .toolbar, .preview-stats { display: flex; gap: .75rem; flex-wrap: wrap; }.decision-row button { min-width: 130px; padding: .75rem 1.2rem; border: 1px solid var(--line); border-radius: 99px; background: var(--paper); }.decision-row .correct { color: #22643b; border-color: #5c9e73; background: #e9f5ed; }.decision-row .wrong { color: var(--red); border-color: #bd6b61; background: #fbecea; }
+.tag-row { display: flex; gap: .8rem; flex-wrap: wrap; border: 0; }.tag-row label { display: flex; align-items: center; gap: .3rem; }.next-button { width: min(100%, 360px); }
+.summary-card { max-width: 620px; margin: 0 auto; padding: clamp(1.5rem, 5vw, 3.5rem); border: 1px solid var(--line); border-radius: 30px; background: var(--paper); text-align: center; box-shadow: var(--shadow); }.accuracy { margin: 1rem; font: 700 clamp(4rem, 15vw, 7rem) 'Songti SC', serif; color: var(--red); }.summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); }.summary-stats div { display: grid; }.summary-stats dt { color: var(--muted); }.summary-stats dd { margin: 0; font-size: 1.6rem; font-weight: 700; }.summary-card .button-row { justify-content: center; margin-top: 2rem; }
+.toolbar { justify-content: space-between; }.toolbar input { flex: 1 1 300px; min-height: 48px; padding: 0 1rem; border: 1px solid var(--line); border-radius: 99px; background: var(--paper); }
+.editor-panel, .settings-card { display: grid; gap: 1rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: 22px; background: var(--paper); }.editor-panel textarea { width: 100%; padding: .8rem; border: 1px solid var(--line); border-radius: 12px; }.preview-stats span { padding: .35rem .7rem; border-radius: 99px; background: #f2e5d2; }.character-preview { min-height: 3rem; font: 600 1.7rem 'Songti SC', serif; }
+.card-table { display: grid; gap: .6rem; }.manage-card { display: grid; grid-template-columns: auto 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }.manage-character { font: 700 2.6rem 'Songti SC', serif; color: var(--red-dark); }.manage-card p { margin: .25rem 0; color: var(--muted); }.status { padding: .3rem .6rem; border-radius: 99px; font-size: .75rem; background: #e9f5ed; }.status.needs_content { background: #fff0ca; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr)); gap: 1rem; }.settings-card button { justify-self: start; }.toggle { display: flex; gap: .7rem; align-items: center; font-weight: 700; }.danger-button { padding: .7rem 1rem; border: 1px solid #9a2b20; border-radius: 99px; color: #8c2f23; background: #fbecea; font-weight: 700; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1rem; background: rgb(35 22 18 / 65%); }.dialog { max-width: 480px; padding: 1.5rem; border-radius: 22px; background: var(--paper); box-shadow: var(--shadow); }.loading, .error-panel { padding: 3rem; text-align: center; }
+.card-editor { display: grid; width: min(100%, 620px); max-height: 92vh; overflow: auto; gap: .9rem; }.card-editor label { display: grid; gap: .35rem; font-weight: 700; }.card-editor input, .card-editor textarea { padding: .7rem; border: 1px solid var(--line); border-radius: 10px; background: white; }.form-error { color: #8c2f23; font-weight: 700; }
+@media (max-width: 640px) { .site-header { align-items: flex-start; flex-direction: column; }.site-header nav { width: 100%; justify-content: space-between; }.hero-panel { align-items: flex-start; flex-direction: column; }.study-meta { grid-template-columns: 1fr auto; }.study-meta span { display: none; }.flash-card { min-height: 440px; }.content-item { grid-template-columns: 1fr; gap: .15rem; }.manage-card { grid-template-columns: auto 1fr; }.manage-card .status, .manage-card button { grid-column: 2; justify-self: start; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
