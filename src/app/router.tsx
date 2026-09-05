@@ -171,7 +171,15 @@ function SettingsRoute() {
     voices={voices}
     voiceUri={app.settings.ttsVoiceUri ?? voices[0]?.uri}
     onVoiceChange={(uri) => void app.updateSettings({ ttsVoiceUri: uri })}
-    onPreviewVoice={() => void speakWhenReady('你好，这是朗读示例。', window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), app.settings.ttsVoiceUri ?? voices[0]?.uri)}
+    onPreviewVoice={async () => {
+      // Preview must play whatever "Hear it" would play, or toggling the neural
+      // voice appears to change nothing.
+      if (app.settings.useNeuralVoice ?? false) {
+        try { await playAudio(await neuralVoiceCache().get('你好，这是朗读示例。')); return }
+        catch { /* fall back to the system voice below */ }
+      }
+      await speakWhenReady('你好，这是朗读示例。', window.speechSynthesis, (text) => new SpeechSynthesisUtterance(text), app.settings.ttsVoiceUri ?? voices[0]?.uri)
+    }}
     continuousListening={app.settings.continuousFlipListening} offlineSpeech={app.settings.useOfflineSpeech ?? false} onOfflineSpeechChange={(value) => void app.updateSettings({ useOfflineSpeech: value })} speechAvailable={'webkitSpeechRecognition' in window || 'SpeechRecognition' in window} onListeningChange={(value) => void app.updateSettings({ continuousFlipListening: value })} onResetDefaults={() => void app.updateSettings({ continuousFlipListening: false, backupReminderDismissedAt: null })} onEraseAll={() => void app.eraseAll()} />
 }
 
